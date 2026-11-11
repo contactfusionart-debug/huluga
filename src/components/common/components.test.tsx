@@ -545,6 +545,7 @@ describe('Base UI Component Library', () => {
         updateApplicationStatus: async () => ({} as any),
         disburseLoan: async () => ({} as any),
         recordPayment: async () => ({} as any),
+        getPayments: async () => [],
         updateSettings: async () => ({} as any),
         updateMemberRole: async () => {},
         resetToMockData: async () => {},

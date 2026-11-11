@@ -47,6 +47,7 @@ export interface DataContextValue {
   ) => Promise<LoanApplication>;
   disburseLoan: (applicationId: string) => Promise<Loan>;
   recordPayment: (payment: Omit<LoanPayment, 'id'>) => Promise<LoanPayment>;
+  getPayments: (loanId?: string) => Promise<LoanPayment[]>;
   updateSettings: (newSettings: Partial<AppSettings>) => Promise<AppSettings>;
   updateMemberRole: (memberId: string, role: UserRole) => Promise<void>;
   resetToMockData: () => Promise<void>;
@@ -242,6 +243,20 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     [currentUser, refreshData]
   );
 
+  const getPayments = useCallback(
+    async (loanId?: string): Promise<LoanPayment[]> => {
+      setError(null);
+      try {
+        return await adapterRef.current.getPayments(loanId);
+      } catch (err: any) {
+        const msg = err?.message || 'Failed to retrieve payments.';
+        setError(msg);
+        throw err;
+      }
+    },
+    []
+  );
+
   const updateSettings = useCallback(
     async (newSettings: Partial<AppSettings>): Promise<AppSettings> => {
       setError(null);
@@ -329,6 +344,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       updateApplicationStatus,
       disburseLoan,
       recordPayment,
+      getPayments,
       updateSettings,
       updateMemberRole,
       resetToMockData,
@@ -349,6 +365,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       updateApplicationStatus,
       disburseLoan,
       recordPayment,
+      getPayments,
       updateSettings,
       updateMemberRole,
       resetToMockData,
