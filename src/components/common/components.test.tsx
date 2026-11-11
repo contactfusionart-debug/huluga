@@ -577,6 +577,27 @@ describe('Base UI Component Library', () => {
       fireEvent.click(fundsLink);
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
+
+    it('renders dynamic interest rate badge from settings', () => {
+      const customDataContextValue: any = {
+        applications: [],
+        settings: {
+          organizationName: 'Huluga Co-op',
+          currencySymbol: '₱',
+          defaultMonthlyInterestRate: 7.5,
+        },
+      };
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <DataContext.Provider value={customDataContextValue}>
+            <Sidebar />
+          </DataContext.Provider>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('7.5% / mo')).toBeDefined();
+    });
   });
 
   /* -------------------------------------------------------------------------

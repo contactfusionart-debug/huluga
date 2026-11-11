@@ -48,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
 
   const isTreasurer = auth?.isTreasurer ?? false;
   const applications = data?.applications ?? [];
+  const defaultRate = data?.settings?.defaultMonthlyInterestRate ?? 5.0;
   const pendingCount = applications.filter((a) => a.status === 'pending').length;
 
   const isActive = (path: string) => {
@@ -137,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
               Interest Policy
             </span>
             <Badge variant="emerald" size="sm" className="font-mono tabular-nums">
-              5.0% / mo
+              {defaultRate.toFixed(1)}% / mo
             </Badge>
           </div>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
