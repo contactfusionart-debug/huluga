@@ -113,8 +113,8 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
         type,
         amount: amountNum,
         direction,
-        memberId: type === 'contribution' || memberId ? memberId : undefined,
-        memberName: type === 'contribution' || memberId ? memberName : undefined,
+        memberId: type === 'contribution' ? memberId : undefined,
+        memberName: type === 'contribution' ? memberName : undefined,
         recordedBy: currentUser?.fullName || currentUser?.username || 'Treasurer',
         description: description.trim(),
         date: date || toISODateString(new Date()),
@@ -394,7 +394,6 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
             variant="primary"
             size="sm"
             isLoading={isSubmitting}
-            onClick={handleSubmit}
           >
             Record Entry
           </Button>

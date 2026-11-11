@@ -264,8 +264,8 @@ describe('Funds Management Feature', () => {
       expect(screen.getByTestId('add-fund-form')).toBeDefined();
 
       // Form submit without amount
-      const submitBtn = screen.getByRole('button', { name: /record entry/i });
-      fireEvent.click(submitBtn);
+      const form = screen.getByTestId('add-fund-form');
+      fireEvent.submit(form);
 
       // Validation error for amount
       expect(await screen.findByText('Amount must be greater than 0')).toBeDefined();
@@ -273,18 +273,18 @@ describe('Funds Management Feature', () => {
       // Fill zero amount
       const amountInput = screen.getByLabelText(/Amount/i);
       fireEvent.change(amountInput, { target: { value: '0' } });
-      fireEvent.click(submitBtn);
+      fireEvent.submit(form);
       expect(await screen.findByText('Amount must be greater than 0')).toBeDefined();
 
       // Fill negative amount
       fireEvent.change(amountInput, { target: { value: '-500' } });
-      fireEvent.click(submitBtn);
+      fireEvent.submit(form);
       expect(await screen.findByText('Amount must be greater than 0')).toBeDefined();
 
       // Clear description
       const descInput = screen.getByLabelText(/Description/i);
       fireEvent.change(descInput, { target: { value: '   ' } });
-      fireEvent.click(submitBtn);
+      fireEvent.submit(form);
       expect(await screen.findByText('Description is required')).toBeDefined();
     });
 
@@ -317,8 +317,7 @@ describe('Funds Management Feature', () => {
       fireEvent.change(descInput, { target: { value: 'Carlos additional capital share' } });
 
       // Submit
-      const submitBtn = screen.getByRole('button', { name: /record entry/i });
-      fireEvent.click(submitBtn);
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
 
       // Modal closes
       await waitFor(() => {
@@ -367,8 +366,7 @@ describe('Funds Management Feature', () => {
       fireEvent.change(descInput, { target: { value: 'Annual co-op registration fee' } });
 
       // Submit
-      const submitBtn = screen.getByRole('button', { name: /record entry/i });
-      fireEvent.click(submitBtn);
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
 
       await waitFor(() => {
         expect(screen.queryByTestId('add-fund-form')).toBeNull();
@@ -417,8 +415,7 @@ describe('Funds Management Feature', () => {
       const descInput = screen.getByLabelText(/Description/i);
       fireEvent.change(descInput, { target: { value: 'Grants & seed donation' } });
 
-      const submitBtn = screen.getByRole('button', { name: /record entry/i });
-      fireEvent.click(submitBtn);
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
 
       await waitFor(() => {
         expect(screen.queryByTestId('add-fund-form')).toBeNull();
@@ -444,8 +441,7 @@ describe('Funds Management Feature', () => {
       const descInput2 = screen.getByLabelText(/Description/i);
       fireEvent.change(descInput2, { target: { value: 'Bank reconciliation discrepancy' } });
 
-      const submitBtn2 = screen.getByRole('button', { name: /record entry/i });
-      fireEvent.click(submitBtn2);
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
 
       await waitFor(() => {
         expect(screen.queryByTestId('add-fund-form')).toBeNull();
@@ -455,6 +451,64 @@ describe('Funds Management Feature', () => {
       expect(await screen.findByText('₱180,000.00')).toBeDefined();
       expect(screen.getByText('Bank reconciliation discrepancy')).toBeDefined();
       expect(screen.getByText('-₱2,000.00')).toBeDefined();
+    });
+
+    it('does not assign memberId or memberName when recording an expense or deposit', async () => {
+      renderFundsPage(mockTreasurer);
+
+      await screen.findByText('₱132,000.00');
+
+      // 1. Record an expense
+      const recordBtn = screen.getByTestId('record-fund-entry-button');
+      fireEvent.click(recordBtn);
+
+      const expenseTypeBtn = screen.getByRole('button', { name: /Expense/i });
+      fireEvent.click(expenseTypeBtn);
+
+      const amountInput = screen.getByLabelText(/Amount/i);
+      fireEvent.change(amountInput, { target: { value: '1500' } });
+
+      const descInput = screen.getByLabelText(/Description/i);
+      fireEvent.change(descInput, { target: { value: 'Office stationery' } });
+
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('add-fund-form')).toBeNull();
+      });
+
+      // 2. Record a deposit
+      fireEvent.click(recordBtn);
+
+      const depositTypeBtn = screen.getByRole('button', { name: /Deposit/i });
+      fireEvent.click(depositTypeBtn);
+
+      const amountInput2 = screen.getByLabelText(/Amount/i);
+      fireEvent.change(amountInput2, { target: { value: '25000' } });
+
+      const descInput2 = screen.getByLabelText(/Description/i);
+      fireEvent.change(descInput2, { target: { value: 'Community grant donation' } });
+
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('add-fund-form')).toBeNull();
+      });
+
+      // Verify entries in adapter have memberId and memberName undefined
+      const entries = await adapter.getFundEntries();
+      const expenseEntry = entries.find((e) => e.description === 'Office stationery');
+      const depositEntry = entries.find((e) => e.description === 'Community grant donation');
+
+      expect(expenseEntry).toBeDefined();
+      expect(expenseEntry?.type).toBe('expense');
+      expect(expenseEntry?.memberId).toBeUndefined();
+      expect(expenseEntry?.memberName).toBeUndefined();
+
+      expect(depositEntry).toBeDefined();
+      expect(depositEntry?.type).toBe('deposit');
+      expect(depositEntry?.memberId).toBeUndefined();
+      expect(depositEntry?.memberName).toBeUndefined();
     });
 
     it('toggles table date sort order between desc and asc', async () => {
