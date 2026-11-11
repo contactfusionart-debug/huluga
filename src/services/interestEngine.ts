@@ -85,9 +85,9 @@ export function calculateLoanSummary(loan: Loan, asOfDate: Date = new Date()): L
   const monthlyInterestRate = loan.monthlyInterestRate ?? DEFAULT_MONTHLY_INTEREST_RATE;
   const monthlyInterestAmount = Math.round((principalAmount * (monthlyInterestRate / 100)) * 100) / 100;
 
-  // If loan is already marked paid and has a last payment date, freeze calculation at payoff date
-  const effectiveAsOf = loan.status === 'paid' && loan.lastPaymentDate
-    ? new Date(loan.lastPaymentDate)
+  // If loan is already marked paid, freeze calculation at payoff date (or loan start date if missing)
+  const effectiveAsOf = loan.status === 'paid'
+    ? (loan.lastPaymentDate ? new Date(loan.lastPaymentDate) : new Date(loan.startDate))
     : asOfDate;
 
   const monthsElapsed = calculateMonthsElapsed(loan.startDate, effectiveAsOf);

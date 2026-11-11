@@ -27,7 +27,7 @@ describe('interestEngine', () => {
       expect(calculateMonthsElapsed(start, asOf)).toBe(1);
     });
 
-    it('returns 2 months after passing the 1-month milestone into month 2', () => {
+    it('returns 1 month after passing the 1-month milestone before reaching month 2', () => {
       const start = '2026-01-15';
       const asOf = new Date('2026-02-16T10:00:00Z');
       expect(calculateMonthsElapsed(start, asOf)).toBe(1);
@@ -177,6 +177,31 @@ describe('interestEngine', () => {
       const asOf = new Date('2026-05-15T12:00:00Z');
       const summary = calculateLoanSummary(loan, asOf);
 
+      expect(summary.remainingPrincipal).toBe(0);
+      expect(summary.unpaidInterest).toBe(0);
+      expect(summary.totalPayoffAmount).toBe(0);
+      expect(summary.isFullyPaid).toBe(true);
+    });
+
+    it('freezes calculation at startDate when paid loan has no lastPaymentDate', () => {
+      const loan: Loan = {
+        id: 'loan-5b',
+        borrowerId: 'user-5',
+        borrowerName: 'Lito Lapid',
+        principalAmount: 10000,
+        monthlyInterestRate: 5.0,
+        startDate: '2026-01-15',
+        status: 'paid',
+        principalPaid: 10000,
+        interestPaid: 500,
+        // lastPaymentDate intentionally omitted
+      };
+
+      const asOf = new Date('2027-01-15T12:00:00Z'); // 1 year later
+      const summary = calculateLoanSummary(loan, asOf);
+
+      expect(summary.monthsElapsed).toBe(1); // Frozen at startDate, not 12+ months
+      expect(summary.totalInterestIncurred).toBe(500);
       expect(summary.remainingPrincipal).toBe(0);
       expect(summary.unpaidInterest).toBe(0);
       expect(summary.totalPayoffAmount).toBe(0);
