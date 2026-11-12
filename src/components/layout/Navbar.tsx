@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, X, ShieldCheck, LogOut } from 'lucide-react';
+import { Menu, X, ShieldCheck, LogOut, Receipt } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
 import { cn } from '../../utils/cn';
@@ -7,15 +7,17 @@ import { cn } from '../../utils/cn';
 export interface NavbarProps {
   onMenuToggle?: () => void;
   isMobileMenuOpen?: boolean;
+  onQuickRecordPayment?: () => void;
   className?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onMenuToggle,
   isMobileMenuOpen = false,
+  onQuickRecordPayment,
   className,
 }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, isTreasurer, logout } = useAuth();
 
   return (
     <header
@@ -59,8 +61,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Right: Current User Info */}
+        {/* Right: Quick Tools & Current User Info */}
         <div className="flex items-center gap-2.5">
+          {currentUser && isTreasurer && onQuickRecordPayment && (
+            <button
+              type="button"
+              onClick={onQuickRecordPayment}
+              aria-label="Quick Record Payment"
+              title="Quick Record Payment"
+              data-testid="navbar-quick-record-payment-btn"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition-colors cursor-pointer"
+            >
+              <Receipt className="w-3.5 h-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Record Payment</span>
+            </button>
+          )}
           {currentUser ? (
             <>
               <div className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/50">

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
+import { QuickRecordPaymentModal } from '../loans/QuickRecordPaymentModal';
+import { RecordPaymentModal } from '../loans/RecordPaymentModal';
+import type { Loan } from '../../types';
 import { cn } from '../../utils/cn';
 
 export interface AppShellProps {
@@ -10,6 +13,8 @@ export interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isQuickPaymentOpen, setIsQuickPaymentOpen] = useState(false);
+  const [selectedLoanForPayment, setSelectedLoanForPayment] = useState<Loan | null>(null);
 
   // Close mobile drawer on Escape key
   useEffect(() => {
@@ -43,6 +48,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
       <Navbar
         isMobileMenuOpen={isMobileMenuOpen}
         onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)}
+        onQuickRecordPayment={() => setIsQuickPaymentOpen(true)}
       />
 
       {/* Main Layout Area */}
@@ -87,6 +93,23 @@ export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
           </div>
         </main>
       </div>
+
+      {/* Quick Record Payment Flow (Treasurer Global Tool) */}
+      {isQuickPaymentOpen && (
+        <QuickRecordPaymentModal
+          isOpen={isQuickPaymentOpen}
+          onClose={() => setIsQuickPaymentOpen(false)}
+          onSelectLoan={(loan) => setSelectedLoanForPayment(loan)}
+        />
+      )}
+
+      {selectedLoanForPayment && (
+        <RecordPaymentModal
+          isOpen={Boolean(selectedLoanForPayment)}
+          onClose={() => setSelectedLoanForPayment(null)}
+          loan={selectedLoanForPayment}
+        />
+      )}
     </div>
   );
 };
