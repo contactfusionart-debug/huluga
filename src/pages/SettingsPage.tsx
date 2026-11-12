@@ -6,9 +6,7 @@ import {
   RefreshCw,
   Save,
   ExternalLink,
-  Lock,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
 import { isSupabaseConfigured } from '../services/supabaseAdapter';
@@ -19,7 +17,6 @@ import { SupabaseConfigModal } from '../components/settings/SupabaseConfigModal'
 import { SqlScriptViewer } from '../components/settings/SqlScriptViewer';
 
 export const SettingsPage: React.FC = () => {
-  const { isTreasurer } = useAuth();
   const {
     settings,
     updateSettings,
@@ -54,10 +51,6 @@ export const SettingsPage: React.FC = () => {
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isTreasurer) {
-      showToast('Only Treasurers have permission to alter organization configuration.', 'error');
-      return;
-    }
 
     const cleanName = organizationName.trim();
     const cleanCurrency = currencySymbol.trim() || '₱';
@@ -145,8 +138,8 @@ export const SettingsPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               System Settings
             </h1>
-            <Badge variant={isTreasurer ? 'emerald' : 'zinc'} size="sm" className="font-semibold">
-              {isTreasurer ? 'Treasurer Admin' : 'Read Only'}
+            <Badge variant="emerald" size="sm" className="font-semibold">
+              Treasurer Admin
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
@@ -173,13 +166,6 @@ export const SettingsPage: React.FC = () => {
                   </CardDescription>
                 </div>
               </div>
-
-              {!isTreasurer && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-900/50">
-                  <Lock className="w-3 h-3" />
-                  <span>Treasurer Permission Required</span>
-                </div>
-              )}
             </div>
           </CardHeader>
 
@@ -198,7 +184,7 @@ export const SettingsPage: React.FC = () => {
                     id="organizationName"
                     type="text"
                     value={organizationName}
-                    disabled={!isTreasurer || isSaving}
+                    disabled={isSaving}
                     onChange={(e) => setOrganizationName(e.target.value)}
                     data-testid="input-org-name"
                     placeholder="e.g. Huluga Community Fund"
@@ -219,7 +205,7 @@ export const SettingsPage: React.FC = () => {
                     id="currencySymbol"
                     type="text"
                     value={currencySymbol}
-                    disabled={!isTreasurer || isSaving}
+                    disabled={isSaving}
                     onChange={(e) => setCurrencySymbol(e.target.value)}
                     data-testid="input-currency-symbol"
                     placeholder="₱"
@@ -249,7 +235,7 @@ export const SettingsPage: React.FC = () => {
                     min="0"
                     max="100"
                     value={defaultMonthlyInterestRate}
-                    disabled={!isTreasurer || isSaving}
+                    disabled={isSaving}
                     onChange={(e) => setDefaultMonthlyInterestRate(parseFloat(e.target.value) || 0)}
                     data-testid="input-interest-rate"
                     className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
@@ -276,7 +262,7 @@ export const SettingsPage: React.FC = () => {
                     step="100"
                     min="1"
                     value={shareValue}
-                    disabled={!isTreasurer || isSaving}
+                    disabled={isSaving}
                     onChange={(e) => setShareValue(parseFloat(e.target.value) || 0)}
                     data-testid="input-share-value"
                     className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
@@ -298,7 +284,7 @@ export const SettingsPage: React.FC = () => {
                     step="1000"
                     min="1000"
                     value={memberLoanLimit}
-                    disabled={!isTreasurer || isSaving}
+                    disabled={isSaving}
                     onChange={(e) => setMemberLoanLimit(parseFloat(e.target.value) || 0)}
                     data-testid="input-loan-limit"
                     className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
@@ -307,20 +293,18 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
 
-              {isTreasurer && (
-                <div className="flex justify-end pt-2">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    isLoading={isSaving}
-                    data-testid="save-settings-button"
-                    icon={<Save className="w-3.5 h-3.5" />}
-                  >
-                    Save Organization Settings
-                  </Button>
-                </div>
-              )}
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isSaving}
+                  data-testid="save-settings-button"
+                  icon={<Save className="w-3.5 h-3.5" />}
+                >
+                  Save Organization Settings
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -391,29 +375,31 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Reset Demo Data Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-dashed border-rose-200 dark:border-rose-900/60 bg-rose-50/30 dark:bg-rose-950/20">
-              <div className="space-y-0.5">
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Reset Local Demo Data
+            {/* Reset Demo Data Row (Local Storage only) */}
+            {dataSource === 'local' && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-dashed border-rose-200 dark:border-rose-900/60 bg-rose-50/30 dark:bg-rose-950/20">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    Reset Local Demo Data
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Restore pre-seeded initial profiles, loans, fund contributions, and pending applications.
+                  </p>
                 </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Restore pre-seeded initial profiles, loans, fund contributions, and pending applications.
-                </p>
-              </div>
 
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                onClick={handleResetData}
-                isLoading={isResetting}
-                data-testid="reset-demo-data-button"
-                icon={<RefreshCw className="w-3.5 h-3.5" />}
-              >
-                Reset Demo Data
-              </Button>
-            </div>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={handleResetData}
+                  isLoading={isResetting}
+                  data-testid="reset-demo-data-button"
+                  icon={<RefreshCw className="w-3.5 h-3.5" />}
+                >
+                  Reset Demo Data
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

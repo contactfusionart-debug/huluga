@@ -44,7 +44,12 @@ function getInitialUser(): UserProfile | null {
     // Fall back to default profile on parse or storage access error
   }
 
-  // Default to Maria Santos (Treasurer)
+  const useSupabaseAuth = import.meta.env.MODE !== 'test' && isSupabaseConfigured();
+  if (useSupabaseAuth) {
+    return null;
+  }
+
+  // Default to Maria Santos (Treasurer) in local/test mode
   const defaultUser = INITIAL_PROFILES[0];
   try {
     if (typeof window !== 'undefined' && window.localStorage && defaultUser) {
@@ -66,6 +71,9 @@ function getInitialProfiles(): UserProfile[] {
       }
     }
   } catch {}
+  if (import.meta.env.MODE !== 'test' && isSupabaseConfigured()) {
+    return [];
+  }
   return INITIAL_PROFILES;
 }
 
@@ -106,7 +114,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
               password,
             });
 
-            if (!error && data.user) {
+            if (error) {
+              if (import.meta.env.MODE !== 'test') {
+                return { success: false, error: error.message };
+              }
+            } else if (data.user) {
               // Fetch user profile from Supabase profiles table
               const { data: profileData } = await client
                 .from('profiles')
@@ -135,9 +147,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
               }
             }
           }
-        } catch {
-          // If Supabase auth network call fails, fall through to local lookup
+        } catch (err) {
+          if (import.meta.env.MODE !== 'test') {
+            return {
+              success: false,
+              error: err instanceof Error ? err.message : 'Supabase authentication failed.',
+            };
+          }
+          // If Supabase auth network call fails in test mode, fall through to local lookup
         }
+      }
+
+      if (import.meta.env.MODE !== 'test' && isSupabaseConfigured()) {
+        return { success: false, error: 'Please enter your Supabase email/username and password.' };
       }
 
       // Local storage lookup
@@ -187,13 +209,83 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     async (
       username: string,
       fullName: string,
-      _password?: string
+      password?: string
     ): Promise<{ success: boolean; error?: string }> => {
       const cleanUsername = username.trim().toLowerCase();
       const cleanFullName = fullName.trim();
 
       if (!cleanUsername || !cleanFullName) {
         return { success: false, error: 'Username and Full Name are required.' };
+      }
+
+      if (import.meta.env.MODE !== 'test' && isSupabaseConfigured()) {
+        if (!password || password.length < 6) {
+          return { success: false, error: 'Password must be at least 6 characters.' };
+        }
+        const creds = getSupabaseCredentials();
+        if (!creds.url || !creds.anonKey) {
+          return { success: false, error: 'Supabase credentials are missing.' };
+        }
+        const client = createClient(creds.url, creds.anonKey);
+        const email = cleanUsername.includes('@')
+          ? cleanUsername
+          : `${cleanUsername}@huluga.local`;
+
+        const { data, error } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username: cleanUsername.split('@')[0],
+              full_name: cleanFullName,
+            },
+          },
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        if (!data.session) {
+          return {
+            success: false,
+            error: 'Account created! Please confirm your email in Supabase (or disable email confirmation) then sign in.',
+          };
+        }
+
+        const { data: profileData } = await client
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user!.id)
+          .maybeSingle();
+
+        const newProfile: UserProfile = profileData
+          ? {
+              id: profileData.id,
+              username: profileData.username,
+              fullName: profileData.full_name,
+              role: profileData.role,
+              avatarUrl: profileData.avatar_url || undefined,
+              phoneNumber: profileData.phone_number || undefined,
+              joinedDate: profileData.joined_date,
+              status: profileData.status,
+            }
+          : {
+              id: data.user!.id,
+              username: cleanUsername.split('@')[0],
+              fullName: cleanFullName,
+              role: 'treasurer',
+              joinedDate: toISODateString(new Date()),
+              status: 'active',
+            };
+
+        setCurrentUser(newProfile);
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(newProfile));
+          }
+        } catch {}
+        return { success: true };
       }
 
       // Check if username already exists
@@ -282,6 +374,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
 
   const logout = useCallback(() => {
     setCurrentUser(null);
+    if (import.meta.env.MODE !== 'test' && isSupabaseConfigured()) {
+      try {
+        const creds = getSupabaseCredentials();
+        if (creds.url && creds.anonKey) {
+          const client = createClient(creds.url, creds.anonKey);
+          void client.auth.signOut();
+        }
+      } catch {}
+    }
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, 'none');

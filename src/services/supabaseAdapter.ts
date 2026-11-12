@@ -32,7 +32,7 @@ export function getSupabaseCredentials(): SupabaseConfig {
   let anonKey = '';
 
   try {
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE !== 'test') {
       url = (import.meta.env.VITE_SUPABASE_URL as string) || '';
       anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
     }
@@ -134,6 +134,7 @@ interface DbAppSettings {
   organization_name: string;
   currency_symbol: string;
   default_monthly_interest_rate: number;
+  share_value?: number | null;
   member_loan_limit?: number | null;
 }
 
@@ -219,6 +220,7 @@ function mapAppSettingsFromDb(row: DbAppSettings): AppSettings {
     organizationName: row.organization_name,
     currencySymbol: row.currency_symbol,
     defaultMonthlyInterestRate: Number(row.default_monthly_interest_rate),
+    shareValue: row.share_value != null ? Number(row.share_value) : 2000,
     memberLoanLimit: row.member_loan_limit != null ? Number(row.member_loan_limit) : undefined,
   };
 }
@@ -584,6 +586,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
       organizationName: 'Huluga Community Fund',
       currencySymbol: '₱',
       defaultMonthlyInterestRate: 5.0,
+      shareValue: 2000,
       memberLoanLimit: 50000,
     };
   }
@@ -601,13 +604,15 @@ export class SupabaseAdapter implements DatabaseAdapter {
       organization_name: updated.organizationName,
       currency_symbol: updated.currencySymbol,
       default_monthly_interest_rate: updated.defaultMonthlyInterestRate,
+      share_value: updated.shareValue ?? 2000,
       member_loan_limit: updated.memberLoanLimit ?? null,
       updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await client
       .from('app_settings')
-      .upsert(row)
+      .update(row)
+      .eq('id', 1)
       .select()
       .single();
 

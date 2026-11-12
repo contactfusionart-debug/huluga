@@ -256,7 +256,7 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
       });
     });
 
-    it('disables organization settings inputs for regular Member role', async () => {
+    it('keeps organization settings inputs editable in the treasurer workspace', async () => {
       renderWithProviders(<SettingsPage />, { initialUser: mockMemberJuan });
 
       await waitFor(() => {
@@ -264,9 +264,8 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
       });
 
       const orgInput = screen.getByTestId('input-org-name') as HTMLInputElement;
-      expect(orgInput.disabled).toBe(true);
-      expect(screen.queryByTestId('save-settings-button')).toBeNull();
-      expect(screen.getByText(/treasurer permission required/i)).toBeDefined();
+      expect(orgInput.disabled).toBe(false);
+      expect(screen.getByTestId('save-settings-button')).toBeDefined();
     });
 
     it('renders the SQL script viewer and copies script to clipboard', async () => {

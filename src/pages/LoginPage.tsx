@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { isSupabaseConfigured } from '../services/supabaseAdapter';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { cn } from '../utils/cn';
@@ -309,40 +310,42 @@ export const LoginPage: React.FC = () => {
           </Button>
         </div>
 
-        {/* Local Testing Quick Access */}
-        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100/70 dark:bg-zinc-900/40 p-4 sm:p-5">
-          <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Local Testing Quick Access</span>
-          </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 leading-relaxed">
-            Instant 1-click login using pre-seeded test accounts without entering credentials.
-          </p>
+        {/* Local Testing Quick Access (hidden when Supabase is active) */}
+        {(import.meta.env.MODE === 'test' || !isSupabaseConfigured()) && (
+          <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100/70 dark:bg-zinc-900/40 p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Local Testing Quick Access</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 leading-relaxed">
+              Instant 1-click login using pre-seeded test accounts without entering credentials.
+            </p>
 
-          <div className="grid grid-cols-1 gap-2.5">
-            <button
-              type="button"
-              onClick={() => handleDemoSwitch('user-1', 'Maria Santos (Treasurer)')}
-              data-testid="demo-maria-button"
-              className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-850 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-xs transition-all text-left"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
-                  MS
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
-                    Maria Santos
+            <div className="grid grid-cols-1 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleDemoSwitch('user-1', 'Maria Santos (Treasurer)')}
+                data-testid="demo-maria-button"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-850 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-xs transition-all text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
+                    MS
                   </div>
-                  <div className="text-[10px] text-zinc-500 font-mono">@maria</div>
+                  <div>
+                    <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
+                      Maria Santos
+                    </div>
+                    <div className="text-[10px] text-zinc-500 font-mono">@maria</div>
+                  </div>
                 </div>
-              </div>
-              <Badge variant="emerald" size="sm" dot className="font-semibold text-[10px]">
-                Treasurer
-              </Badge>
-            </button>
+                <Badge variant="emerald" size="sm" dot className="font-semibold text-[10px]">
+                  Treasurer
+                </Badge>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

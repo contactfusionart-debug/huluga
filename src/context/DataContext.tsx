@@ -20,7 +20,6 @@ import type {
 import type { DatabaseAdapter } from '../services/databaseAdapter';
 import { localStorageAdapter } from '../services/localStorageAdapter';
 import { supabaseAdapter, isSupabaseConfigured } from '../services/supabaseAdapter';
-import { getInitialMockData } from '../services/mockData';
 import { AuthContext } from './AuthContext';
 
 export type DataSourceType = 'local' | 'supabase';
@@ -57,14 +56,21 @@ export interface DataContextValue {
 const DataContext = createContext<DataContextValue | undefined>(undefined);
 
 function getInitialDataSource(): DataSourceType {
+  const isTestEnv = import.meta.env.MODE === 'test';
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const stored = window.localStorage.getItem(DATA_SOURCE_STORAGE_KEY);
       if (stored === 'supabase' && isSupabaseConfigured()) {
         return 'supabase';
       }
+      if (stored === 'local') {
+        return 'local';
+      }
     }
   } catch {}
+  if (!isTestEnv && isSupabaseConfigured()) {
+    return 'supabase';
+  }
   return 'local';
 }
 
@@ -90,7 +96,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({
   const [loans, setLoans] = useState<Loan[]>([]);
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [members, setMembers] = useState<UserProfile[]>([]);
-  const [settings, setSettings] = useState<AppSettings>(() => getInitialMockData().settings);
+  const [settings, setSettings] = useState<AppSettings>({
+    organizationName: 'Huluga Community Fund',
+    currencySymbol: '₱',
+    defaultMonthlyInterestRate: 5.0,
+    shareValue: 2000,
+    memberLoanLimit: 50000,
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
