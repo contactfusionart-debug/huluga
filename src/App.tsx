@@ -17,6 +17,7 @@ import { FundsPage } from './pages/FundsPage';
 import { LoansPage } from './pages/LoansPage';
 import { ApplicationsPage } from './pages/ApplicationsPage';
 import { MembersPage } from './pages/MembersPage';
+import { DividendsPage } from './pages/DividendsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import type { UserProfile } from './types';
@@ -56,6 +57,7 @@ export function AppRoutes() {
         <Route path="/loans" element={<LoansPage />} />
         <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/members" element={<MembersPage />} />
+        <Route path="/dividends" element={<DividendsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

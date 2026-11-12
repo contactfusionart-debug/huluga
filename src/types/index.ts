@@ -79,12 +79,52 @@ export interface LoanPayment {
   notes?: string;
 }
 
+export interface DividendFee {
+  id: string;
+  name: string;
+  type: 'fixed' | 'percent';
+  value: number;
+}
+
 export interface AppSettings {
   organizationName: string;
   currencySymbol: string;
   defaultMonthlyInterestRate: number;
   shareValue?: number;
   memberLoanLimit?: number;
+  cycleYear?: number;
+  treasurerFeePercent?: number;
+  customDividendFees?: DividendFee[];
+}
+
+export interface MemberDividendRow {
+  memberId: string;
+  memberName: string;
+  username: string;
+  capitalContributed: number;
+  shares: number;
+  ownershipPercent: number;
+  dividendEarned: number;
+  totalYearEndReturn: number;
+}
+
+export interface DividendSummary {
+  cycleYear: number;
+  grossInterestRevenue: number;
+  treasurerFeePercent: number;
+  treasurerFeeAmount: number;
+  customFeesBreakdown: Array<{
+    id: string;
+    name: string;
+    type: 'fixed' | 'percent';
+    value: number;
+    calculatedAmount: number;
+  }>;
+  totalFees: number;
+  netDistributableRevenue: number;
+  totalShares: number;
+  dividendPerShare: number;
+  memberRows: MemberDividendRow[];
 }
 
 export interface LoanSummary {

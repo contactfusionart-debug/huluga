@@ -231,6 +231,9 @@ export const INITIAL_SETTINGS: AppSettings = {
   defaultMonthlyInterestRate: 5.0,
   shareValue: 2000,
   memberLoanLimit: 50000,
+  cycleYear: 2026,
+  treasurerFeePercent: 10,
+  customDividendFees: [],
 };
 
 export function getInitialMockData() {

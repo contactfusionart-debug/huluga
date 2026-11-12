@@ -6,6 +6,7 @@ import {
   HandCoins,
   ClipboardList,
   Users,
+  PieChart,
   Settings,
   ShieldCheck,
   LogOut,
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItemConfig[] = [
     isPendingBadge: true,
   },
   { name: 'Members', to: '/members', icon: Users },
+  { name: 'Dividends', to: '/dividends', icon: PieChart },
   { name: 'Settings', to: '/settings', icon: Settings, treasurerNotice: true },
 ];
 
