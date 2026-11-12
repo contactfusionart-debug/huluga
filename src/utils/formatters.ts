@@ -106,12 +106,16 @@ export function generateMemberCredentials(
   const cleanLast = lastName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const phoneDigits = (phoneNumber || '').replace(/\D/g, '');
   const phoneSuffix = phoneDigits.slice(-4) || '1015';
+  const shortPhone = phoneDigits.slice(-2);
 
-  const baseUsername =
-    [cleanFirst, cleanLast].filter(Boolean).join('.') || 'member';
-  const username = phoneDigits.length >= 4 && !cleanLast
-    ? `${baseUsername}${phoneSuffix}`
-    : baseUsername;
+  let username = 'member';
+  if (cleanFirst && cleanLast) {
+    username = `${cleanFirst.slice(0, 1)}${cleanLast.slice(0, 6)}${shortPhone}`;
+  } else if (cleanFirst || cleanLast) {
+    username = `${(cleanFirst || cleanLast).slice(0, 6)}${shortPhone}`;
+  } else if (shortPhone) {
+    username = `member${shortPhone}`;
+  }
 
   const namePrefix = cleanFirst.slice(0, 4) || cleanLast.slice(0, 4) || 'huluga';
   const lastInitial = cleanLast.slice(0, 2);

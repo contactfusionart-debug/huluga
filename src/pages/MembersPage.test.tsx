@@ -345,7 +345,7 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       fireEvent.change(screen.getByTestId('enroll-phone-input'), {
         target: { value: '0917-555-0199' },
       });
-      expect(screen.getByTestId('enroll-generated-username').textContent).toBe('elena.bautista');
+      expect(screen.getByTestId('enroll-generated-username').textContent).toBe('ebautis99');
       expect(screen.getByTestId('enroll-generated-password').textContent).toBe('elenba0199');
       fireEvent.change(screen.getByTestId('enroll-shares-input'), {
         target: { value: '2' },
@@ -361,7 +361,7 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
         expect(elena?.firstName).toBe('Elena');
         expect(elena?.lastName).toBe('Bautista');
         expect(elena?.address).toBe('Brgy. Tibanga, Iligan City');
-        expect(elena?.username).toBe('elena.bautista');
+        expect(elena?.username).toBe('ebautis99');
         expect(elena?.generatedPassword).toBe('elenba0199');
         elenaId = elena!.id;
       });
@@ -379,7 +379,7 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       fireEvent.click(toggleBtn);
 
       const credsBox = await screen.findByTestId(`member-credentials-${elenaId}`);
-      expect(credsBox.textContent).toContain('elena.bautista');
+      expect(credsBox.textContent).toContain('ebautis99');
       expect(credsBox.textContent).toContain('elenba0199');
       expect(screen.queryByTestId('member-detail-modal')).toBeNull();
     });
