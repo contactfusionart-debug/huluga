@@ -197,9 +197,21 @@ export const DataProvider: React.FC<DataProviderProps> = ({
           borrower,
           loans,
           applications,
-          settings.memberLoanLimit
+          settings.memberLoanLimit,
+          { fundEntries, settings }
         );
-        if (creditSummary.hasLimit && app.requestedAmount > creditSummary.availableCredit) {
+        if (creditSummary.blockReason) {
+          throw new Error(creditSummary.blockReason);
+        }
+        if (
+          Number.isFinite(creditSummary.maxLoanableAmount) &&
+          app.requestedAmount > creditSummary.maxLoanableAmount
+        ) {
+          if (creditSummary.availableFund < creditSummary.availableCredit) {
+            throw new Error(
+              `Requested amount (${formatCurrency(app.requestedAmount, settings.currencySymbol)}) exceeds available treasury fund (${formatCurrency(creditSummary.availableFund, settings.currencySymbol)}).`
+            );
+          }
           throw new Error(
             `Requested amount (${formatCurrency(app.requestedAmount, settings.currencySymbol)}) exceeds available credit limit (${formatCurrency(creditSummary.availableCredit, settings.currencySymbol)}).`
           );
@@ -214,7 +226,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [members, loans, applications, settings.memberLoanLimit, settings.currencySymbol, refreshData]
+    [members, loans, applications, fundEntries, settings, refreshData]
   );
 
   const updateApplicationStatus = useCallback(
@@ -234,9 +246,21 @@ export const DataProvider: React.FC<DataProviderProps> = ({
               borrower,
               loans,
               otherApps,
-              settings.memberLoanLimit
+              settings.memberLoanLimit,
+              { fundEntries, settings }
             );
-            if (creditSummary.hasLimit && targetApp.requestedAmount > creditSummary.availableCredit) {
+            if (creditSummary.blockReason) {
+              throw new Error(`Cannot approve: ${creditSummary.blockReason}`);
+            }
+            if (
+              Number.isFinite(creditSummary.maxLoanableAmount) &&
+              targetApp.requestedAmount > creditSummary.maxLoanableAmount
+            ) {
+              if (creditSummary.availableFund < creditSummary.availableCredit) {
+                throw new Error(
+                  `Cannot approve: requested amount exceeds available treasury fund (${formatCurrency(creditSummary.availableFund, settings.currencySymbol)}).`
+                );
+              }
               throw new Error(
                 `Cannot approve: requested amount exceeds available credit limit (${formatCurrency(creditSummary.availableCredit, settings.currencySymbol)}).`
               );

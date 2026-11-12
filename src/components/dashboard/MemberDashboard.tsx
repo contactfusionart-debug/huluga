@@ -112,7 +112,8 @@ export const MemberDashboard: React.FC = () => {
       memberProfile,
       loans,
       applications,
-      settings.memberLoanLimit
+      settings.memberLoanLimit,
+      { fundEntries, settings }
     );
 
     return {
@@ -127,7 +128,7 @@ export const MemberDashboard: React.FC = () => {
       pendingAppsCount,
       creditSummary,
     };
-  }, [fundEntries, loans, applications, memberProfile, shareValue, settings.memberLoanLimit]);
+  }, [fundEntries, loans, applications, memberProfile, shareValue, settings]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,16 +231,18 @@ export const MemberDashboard: React.FC = () => {
         />
 
         <StatCard
-          title="Available Credit"
+          title="Max Loanable Amount"
           value={
-            metrics.creditSummary.hasLimit
-              ? formatCurrency(metrics.creditSummary.availableCredit, currency)
+            Number.isFinite(metrics.creditSummary.maxLoanableAmount)
+              ? formatCurrency(metrics.creditSummary.maxLoanableAmount, currency)
               : 'Unlimited'
           }
           subtitle={
-            metrics.creditSummary.hasLimit
-              ? `Limit: ${formatCurrency(metrics.creditSummary.creditLimit, currency)}`
-              : 'No credit limit cap set'
+            metrics.creditSummary.blockReason
+              ? metrics.creditSummary.blockReason
+              : metrics.creditSummary.hasLimit
+                ? `Limit: ${formatCurrency(metrics.creditSummary.creditLimit, currency)} · Pool: ${formatCurrency(metrics.creditSummary.availableFund, currency)}`
+                : `Pool Available: ${formatCurrency(metrics.creditSummary.availableFund, currency)}`
           }
           icon={<ShieldCheck className="w-4 h-4 text-indigo-600" />}
           data-testid="member-stat-available-credit"

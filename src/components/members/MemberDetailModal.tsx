@@ -64,9 +64,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         currentMember ?? undefined,
         loans,
         applications,
-        settings?.memberLoanLimit
+        settings?.memberLoanLimit,
+        { fundEntries, settings }
       ),
-    [currentMember, loans, applications, settings?.memberLoanLimit]
+    [currentMember, loans, applications, fundEntries, settings]
   );
 
   React.useEffect(() => {

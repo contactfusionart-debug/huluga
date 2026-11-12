@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { getMemberCreditSummary } from '../../utils/creditLimit';
 import type { LoanApplication, ApplicationStatus } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -45,7 +46,7 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
   onSuccess,
 }) => {
   const { isTreasurer } = useAuth();
-  const { fundEntries, loans, updateApplicationStatus, disburseLoan } = useData();
+  const { fundEntries, loans, applications, members, settings, updateApplicationStatus, disburseLoan } = useData();
   const { showToast } = useToast();
 
   const [reviewNotes, setReviewNotes] = useState<string>('');
@@ -113,7 +114,16 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
 
   const monthlyRate = application.monthlyInterestRate ?? 5.0;
   const monthlyInterest = Math.round(application.requestedAmount * (monthlyRate / 100) * 100) / 100;
-  const hasSufficientFunds = netLiquidPool >= application.requestedAmount;
+  const borrower = members.find((m) => m.id === application.borrowerId);
+  const otherApps = applications.filter((a) => a.id !== application.id);
+  const creditSummary = getMemberCreditSummary(
+    borrower,
+    loans,
+    otherApps,
+    settings?.memberLoanLimit,
+    { fundEntries, settings, netLiquidPool }
+  );
+  const hasSufficientFunds = creditSummary.availableFund >= application.requestedAmount;
   const isFinalized =
     application.status === 'disbursed' ||
     application.status === 'rejected' ||

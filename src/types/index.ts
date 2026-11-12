@@ -99,6 +99,12 @@ export interface AppSettings {
   defaultMonthlyInterestRate: number;
   shareValue?: number;
   memberLoanLimit?: number;
+  /** Multiplier applied to paid-up share capital (e.g. 2.0 = 200% / 2x shares). */
+  loanShareMultiplier?: number;
+  /** Percentage of net liquid pool held as a cash reserve buffer (e.g. 15 = 15%). */
+  treasuryReservePercent?: number;
+  /** Max percentage of total fund pool any single borrower may hold (0 = disabled). */
+  maxPoolConcentrationPercent?: number;
   cycleYear?: number;
   treasurerFeePercent?: number;
   customDividendFees?: DividendFee[];

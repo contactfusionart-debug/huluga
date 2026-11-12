@@ -72,8 +72,13 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
   }, [members, borrowerId, currentUser]);
 
   const creditSummary = useMemo(
-    () => getMemberCreditSummary(selectedBorrower, loans, applications, loanLimit),
-    [selectedBorrower, loans, applications, loanLimit]
+    () =>
+      getMemberCreditSummary(selectedBorrower, loans, applications, loanLimit, {
+        fundEntries,
+        settings,
+        netLiquidPool,
+      }),
+    [selectedBorrower, loans, applications, loanLimit, fundEntries, settings, netLiquidPool]
   );
 
   // Parsed amount and live interest calculations
@@ -97,10 +102,14 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
     const numAmount = parseFloat(amount);
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
       newErrors.amount = 'Loan amount must be greater than 0';
+    } else if (creditSummary.blockReason) {
+      newErrors.amount = creditSummary.blockReason;
     } else if (creditSummary.hasLimit && numAmount > creditSummary.creditLimit) {
       newErrors.amount = `Requested amount exceeds member loan limit of ${formatCurrency(creditSummary.creditLimit)}`;
     } else if (creditSummary.hasLimit && numAmount > creditSummary.availableCredit) {
       newErrors.amount = `Requested amount exceeds available credit of ${formatCurrency(creditSummary.availableCredit)} (Limit: ${formatCurrency(creditSummary.creditLimit)}, Used: ${formatCurrency(creditSummary.usedCredit)})`;
+    } else if (numAmount > creditSummary.availableFund) {
+      newErrors.amount = `Requested amount exceeds available treasury fund of ${formatCurrency(creditSummary.availableFund)}`;
     }
 
     if (!purpose.trim()) {
@@ -264,8 +273,8 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
                 data-testid="available-credit-label"
               >
                 {creditSummary.usedCredit > 0
-                  ? `Available: ${formatCurrency(creditSummary.availableCredit)} / ${formatCurrency(creditSummary.creditLimit)}`
-                  : `Max limit: ${formatCurrency(creditSummary.creditLimit)}`}
+                  ? `Max Loanable: ${formatCurrency(creditSummary.maxLoanableAmount)} (Credit: ${formatCurrency(creditSummary.availableCredit)} / ${formatCurrency(creditSummary.creditLimit)})`
+                  : `Max Loanable: ${formatCurrency(creditSummary.maxLoanableAmount)} (Limit: ${formatCurrency(creditSummary.creditLimit)})`}
               </span>
             )}
           </div>
