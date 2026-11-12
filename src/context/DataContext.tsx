@@ -25,6 +25,16 @@ import { AuthContext } from './AuthContext';
 export type DataSourceType = 'local' | 'supabase';
 export const DATA_SOURCE_STORAGE_KEY = 'huluga_data_source';
 
+export interface EnrollMemberInput {
+  fullName: string;
+  username?: string;
+  phoneNumber?: string;
+  sharesCount: number;
+  enrollmentMode: 'paid' | 'committed';
+  joinedDate?: string;
+  notes?: string;
+}
+
 export interface DataContextValue {
   fundEntries: FundEntry[];
   loans: Loan[];
@@ -49,6 +59,7 @@ export interface DataContextValue {
   getPayments: (loanId?: string) => Promise<LoanPayment[]>;
   updateSettings: (newSettings: Partial<AppSettings>) => Promise<AppSettings>;
   updateMemberRole: (memberId: string, role: UserRole) => Promise<void>;
+  enrollMember: (input: EnrollMemberInput) => Promise<UserProfile>;
   resetToMockData: () => Promise<void>;
   setDataSource: (source: DataSourceType) => Promise<void>;
 }
@@ -300,6 +311,70 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     [refreshData]
   );
 
+  const enrollMember = useCallback(
+    async (input: EnrollMemberInput): Promise<UserProfile> => {
+      setError(null);
+      try {
+        const shareValue = settings.shareValue || 2000;
+        const sharesCount = Math.max(0, Number(input.sharesCount) || 0);
+        const capitalAmount = Math.round(sharesCount * shareValue * 100) / 100;
+        const joinedDate = input.joinedDate || new Date().toISOString().split('T')[0];
+
+        const baseSlug = (input.username?.trim() || input.fullName.trim())
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '') || 'member';
+        const hasCollision = members.some((m) => m.username.toLowerCase() === baseSlug);
+        const username = hasCollision
+          ? `${baseSlug}_${Math.floor(100 + Math.random() * 900)}`
+          : baseSlug;
+
+        const id =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `00000000-0000-4000-8000-${Date.now().toString().padStart(12, '0').slice(-12)}`;
+
+        const newProfile: UserProfile = {
+          id,
+          username,
+          fullName: input.fullName.trim(),
+          role: 'member',
+          phoneNumber: input.phoneNumber?.trim() || undefined,
+          joinedDate,
+          status: 'active',
+          committedShares: input.enrollmentMode === 'committed' ? sharesCount : 0,
+          committedCapital: input.enrollmentMode === 'committed' ? capitalAmount : 0,
+        };
+
+        const created = await adapterRef.current.createProfile(newProfile);
+
+        if (input.enrollmentMode === 'paid' && capitalAmount > 0) {
+          await adapterRef.current.addFundEntry({
+            type: 'contribution',
+            amount: capitalAmount,
+            sharesCount,
+            direction: 'inflow',
+            memberId: created.id,
+            memberName: created.fullName,
+            recordedBy: currentUser?.fullName || 'Treasurer',
+            description:
+              input.notes?.trim() ||
+              `Initial share capital (${sharesCount} ${sharesCount === 1 ? 'share' : 'shares'})`,
+            date: joinedDate,
+          });
+        }
+
+        await refreshData();
+        return created;
+      } catch (err: any) {
+        const msg = err?.message || 'Failed to enroll member.';
+        setError(msg);
+        throw err;
+      }
+    },
+    [settings.shareValue, members, currentUser, refreshData]
+  );
+
   const resetToMockData = useCallback(async (): Promise<void> => {
     setError(null);
     try {
@@ -359,6 +434,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       getPayments,
       updateSettings,
       updateMemberRole,
+      enrollMember,
       resetToMockData,
       setDataSource,
     }),
@@ -380,6 +456,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       getPayments,
       updateSettings,
       updateMemberRole,
+      enrollMember,
       resetToMockData,
       setDataSource,
     ]

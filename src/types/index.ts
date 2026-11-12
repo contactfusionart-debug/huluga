@@ -9,6 +9,8 @@ export interface UserProfile {
   phoneNumber?: string;
   joinedDate: string;
   status: 'active' | 'suspended';
+  committedShares?: number;
+  committedCapital?: number;
 }
 
 export type FundEntryType =

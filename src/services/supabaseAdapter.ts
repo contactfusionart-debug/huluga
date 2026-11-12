@@ -72,6 +72,8 @@ interface DbProfile {
   phone_number?: string | null;
   joined_date: string;
   status: 'active' | 'suspended';
+  committed_shares?: number | null;
+  committed_capital?: number | null;
 }
 
 interface DbFundEntry {
@@ -149,6 +151,8 @@ function mapProfileFromDb(row: DbProfile): UserProfile {
     phoneNumber: row.phone_number || undefined,
     joinedDate: row.joined_date,
     status: row.status,
+    committedShares: row.committed_shares != null ? Number(row.committed_shares) : undefined,
+    committedCapital: row.committed_capital != null ? Number(row.committed_capital) : undefined,
   };
 }
 
@@ -275,6 +279,8 @@ export class SupabaseAdapter implements DatabaseAdapter {
       phone_number: profile.phoneNumber || null,
       joined_date: profile.joinedDate,
       status: profile.status,
+      committed_shares: profile.committedShares ?? 0,
+      committed_capital: profile.committedCapital ?? 0,
     };
 
     const { data, error } = await client

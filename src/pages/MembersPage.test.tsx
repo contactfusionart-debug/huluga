@@ -325,4 +325,62 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       expect(profiles.find((p) => p.id === 'user-3')?.role).toBe('member');
     });
   });
+
+  describe('Member Enrollment (Paid Capital vs Committed Shares)', () => {
+    it('enrolls a new member with paid initial capital and records contribution', async () => {
+      renderMembersPage(mockTreasurer);
+
+      const enrollBtn = await screen.findByTestId('enroll-member-button');
+      fireEvent.click(enrollBtn);
+
+      fireEvent.change(screen.getByTestId('enroll-fullname-input'), {
+        target: { value: 'Elena Bautista' },
+      });
+      fireEvent.change(screen.getByTestId('enroll-shares-input'), {
+        target: { value: '2' },
+      });
+      fireEvent.click(screen.getByTestId('enroll-mode-paid'));
+      fireEvent.click(screen.getByTestId('submit-enroll-member'));
+
+      await waitFor(async () => {
+        const profiles = await adapter.getProfiles();
+        expect(profiles.some((p) => p.fullName === 'Elena Bautista')).toBe(true);
+      });
+
+      const entries = await adapter.getFundEntries();
+      const elenaEntry = entries.find((e) => e.memberName === 'Elena Bautista');
+      expect(elenaEntry).toBeDefined();
+      expect(elenaEntry?.type).toBe('contribution');
+      expect(elenaEntry?.amount).toBe(4000);
+      expect(elenaEntry?.sharesCount).toBe(2);
+    });
+
+    it('enrolls a new member with committed shares without paying capital upfront', async () => {
+      renderMembersPage(mockTreasurer);
+
+      const enrollBtn = await screen.findByTestId('enroll-member-button');
+      fireEvent.click(enrollBtn);
+
+      fireEvent.change(screen.getByTestId('enroll-fullname-input'), {
+        target: { value: 'Mateo Cruz' },
+      });
+      fireEvent.change(screen.getByTestId('enroll-shares-input'), {
+        target: { value: '2' },
+      });
+      fireEvent.click(screen.getByTestId('enroll-mode-committed'));
+      fireEvent.click(screen.getByTestId('submit-enroll-member'));
+
+      await waitFor(async () => {
+        const profiles = await adapter.getProfiles();
+        const mateo = profiles.find((p) => p.fullName === 'Mateo Cruz');
+        expect(mateo).toBeDefined();
+        expect(mateo?.committedShares).toBe(2);
+        expect(mateo?.committedCapital).toBe(4000);
+      });
+
+      const entries = await adapter.getFundEntries();
+      expect(entries.find((e) => e.memberName === 'Mateo Cruz')).toBeUndefined();
+      expect(await screen.findByText(/\+2 shares committed \(unpaid\)/i)).toBeDefined();
+    });
+  });
 });

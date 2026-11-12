@@ -12,7 +12,7 @@
 
 -- 1. PROFILES TABLE
 create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
   username text unique not null,
   full_name text not null,
   role text not null check (role in ('treasurer', 'member')),
@@ -20,6 +20,8 @@ create table if not exists public.profiles (
   phone_number text,
   joined_date date not null default current_date,
   status text not null default 'active' check (status in ('active', 'suspended')),
+  committed_shares numeric(10,2) not null default 0,
+  committed_capital numeric(14,2) not null default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

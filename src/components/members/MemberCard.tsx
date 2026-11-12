@@ -191,6 +191,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({
             >
               {formatShares(totalContributed !== undefined ? calculateShares(totalContributed, shareValue) : computedShares)}
             </span>
+            {(member.committedShares ?? 0) > 0 && (
+              <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 block mt-0.5">
+                +{formatShares(member.committedShares || 0)} committed (unpaid)
+              </span>
+            )}
           </div>
 
           <div>

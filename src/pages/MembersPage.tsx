@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Users,
+  UserPlus,
   Search,
   HandCoins,
   Wallet,
@@ -9,10 +10,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { Button } from '../components/common/Button';
 import { StatCard } from '../components/common/StatCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { MemberCard } from '../components/members/MemberCard';
 import { MemberDetailModal } from '../components/members/MemberDetailModal';
+import { EnrollMemberModal } from '../components/members/EnrollMemberModal';
 import { calculateLoanSummary } from '../services/interestEngine';
 import { formatCurrency } from '../utils/formatters';
 import type { UserProfile } from '../types';
@@ -31,6 +34,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleTab, setRoleTab] = useState<MemberRoleTab>('all');
   const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
+  const [isEnrollOpen, setIsEnrollOpen] = useState(false);
 
   // Active Borrowers Set (members with active loans that are not fully paid)
   const activeBorrowerIds = useMemo(() => {
@@ -109,10 +113,20 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
           </p>
         </div>
 
-        {/* Member Directory Status Pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 select-none self-start sm:self-auto">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-mono tabular-nums font-medium">{totalMembers} Members Enrolled</span>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 select-none">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono tabular-nums font-medium">{totalMembers} Members Enrolled</span>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setIsEnrollOpen(true)}
+            icon={<UserPlus className="w-4 h-4" />}
+            data-testid="enroll-member-button"
+          >
+            Enroll Member
+          </Button>
         </div>
       </div>
 
@@ -285,6 +299,12 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
         member={selectedMember}
         isOpen={Boolean(selectedMember)}
         onClose={() => setSelectedMember(null)}
+      />
+
+      {/* Enroll Member Modal */}
+      <EnrollMemberModal
+        isOpen={isEnrollOpen}
+        onClose={() => setIsEnrollOpen(false)}
       />
     </div>
   );

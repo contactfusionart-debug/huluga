@@ -33,10 +33,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   onClose,
 }) => {
   const { currentUser, isTreasurer } = useAuth();
-  const { members, fundEntries, loans, updateMemberRole } = useData();
+  const { members, fundEntries, loans, settings, updateMemberRole, addFundEntry } = useData();
   const { showToast } = useToast();
 
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [isRecordingShareInterest, setIsRecordingShareInterest] = useState(false);
 
   // Keep member details synchronized with DataContext changes (e.g. after role update)
   const currentMember = useMemo(() => {
@@ -252,6 +253,57 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Committed Shares (Unpaid Capital) */}
+        {(currentMember.committedShares ?? 0) > 0 && (() => {
+          const committedShares = currentMember.committedShares || 0;
+          const committedCap = currentMember.committedCapital || committedShares * (settings?.shareValue || 2000);
+          const rate = settings?.defaultMonthlyInterestRate ?? 5.0;
+          const monthlyInterest = Math.round(committedCap * (rate / 100) * 100) / 100;
+          return (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  Committed Shares (Unpaid Capital)
+                </h4>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 font-mono tabular-nums">
+                  {committedShares} {committedShares === 1 ? 'share' : 'shares'} ({formatCurrency(committedCap)}) &bull; {formatCurrency(monthlyInterest)}/mo interest ({formatPercent(rate)}/mo)
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                isLoading={isRecordingShareInterest}
+                onClick={async () => {
+                  setIsRecordingShareInterest(true);
+                  try {
+                    await addFundEntry({
+                      type: 'deposit',
+                      amount: monthlyInterest,
+                      direction: 'inflow',
+                      memberId: currentMember.id,
+                      memberName: currentMember.fullName,
+                      recordedBy: currentUser?.fullName || 'Treasurer',
+                      description: `Monthly share interest (${committedShares} committed ${committedShares === 1 ? 'share' : 'shares'})`,
+                      date: new Date().toISOString().split('T')[0],
+                    });
+                    showToast(
+                      `Recorded ${formatCurrency(monthlyInterest)} monthly share interest for ${currentMember.fullName}.`,
+                      'success'
+                    );
+                  } catch (err: any) {
+                    showToast(err?.message || 'Failed to record share interest.', 'error');
+                  } finally {
+                    setIsRecordingShareInterest(false);
+                  }
+                }}
+                data-testid="record-share-interest-btn"
+              >
+                Record Monthly Share Interest
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Treasurer Administrative Controls (Hidden for regular members) */}
         {isTreasurer && (
