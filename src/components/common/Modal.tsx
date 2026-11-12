@@ -64,7 +64,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-zinc-950/50 backdrop-blur-xs transition-opacity duration-150"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-6 bg-zinc-950/50 backdrop-blur-xs transition-opacity duration-150"
       onClick={onClose}
       data-testid="modal-backdrop"
       role="presentation"
@@ -76,13 +76,13 @@ export const Modal: React.FC<ModalProps> = ({
         aria-describedby={description ? 'modal-description' : undefined}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative w-full rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden flex flex-col max-h-[90vh]',
+          'relative w-full rounded-t-2xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]',
           sizeClasses[size],
           className
         )}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0">
+        <div className="flex items-start justify-between gap-4 p-4 sm:p-6 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0">
           <div className="space-y-1">
             <h2
               id="modal-title"
@@ -110,7 +110,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 text-sm text-zinc-700 dark:text-zinc-300">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 text-sm text-zinc-700 dark:text-zinc-300">
           {children}
         </div>
 

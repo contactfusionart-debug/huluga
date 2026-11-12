@@ -165,15 +165,15 @@ export const MemberDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8" data-testid="member-dashboard">
+    <div className="space-y-5 sm:space-y-8" data-testid="member-dashboard">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Welcome, {memberProfile?.fullName || 'Member'}
             </h1>
-            <Badge variant="emerald" size="sm" dot className="font-semibold">
+            <Badge variant="emerald" size="sm" dot className="font-semibold shrink-0">
               Member
             </Badge>
           </div>
@@ -182,7 +182,7 @@ export const MemberDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -193,6 +193,7 @@ export const MemberDashboard: React.FC = () => {
               setIsPasswordModalOpen(true);
             }}
             icon={<KeyRound className="w-3.5 h-3.5" />}
+            className="w-full sm:w-auto justify-center min-h-[40px] sm:min-h-0"
             data-testid="member-change-password-btn"
           >
             Change Password
@@ -202,6 +203,7 @@ export const MemberDashboard: React.FC = () => {
             size="sm"
             onClick={() => setIsApplyModalOpen(true)}
             icon={<Plus className="w-3.5 h-3.5" />}
+            className="w-full sm:w-auto justify-center min-h-[40px] sm:min-h-0"
             data-testid="member-apply-loan-btn"
           >
             Apply for Loan
@@ -209,8 +211,8 @@ export const MemberDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Top 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top 4 Stat Cards (2x2 on mobile, 4-col on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="My Share Capital"
           value={formatCurrency(metrics.paidShareCapital, currency)}
@@ -266,9 +268,9 @@ export const MemberDashboard: React.FC = () => {
       <PaymentAlertsBanner alerts={metrics.memberAlerts} mode="member" currency={currency} />
 
       {/* Loans & Applications + Transaction History */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Column 1: My Loans & Applications */}
-        <div className="space-y-6" data-testid="member-loans-section">
+        <div className="space-y-4 sm:space-y-6" data-testid="member-loans-section">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>My Loans</CardTitle>
@@ -413,10 +415,10 @@ export const MemberDashboard: React.FC = () => {
                       key={entry.id}
                       className="py-3 flex items-center justify-between gap-3 text-sm"
                     >
-                      <div className="min-w-0">
-                        <div className="font-medium text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-2">
-                          <span>{entry.description}</span>
-                          <Badge variant="zinc" size="sm" className="capitalize text-[10px]">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2 min-w-0">
+                          <span className="truncate">{entry.description}</span>
+                          <Badge variant="zinc" size="sm" className="capitalize text-[10px] shrink-0">
                             {entry.type.replace('_', ' ')}
                           </Badge>
                         </div>

@@ -32,15 +32,15 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
       <div
         ref={ref}
         className={cn(
-          'rounded-xl border border-zinc-200 bg-white p-5 shadow-subtle dark:border-zinc-800 dark:bg-zinc-900 transition-colors',
+          'rounded-xl border border-zinc-200 bg-white p-3.5 sm:p-5 shadow-subtle dark:border-zinc-800 dark:bg-zinc-900 transition-colors',
           className
         )}
         {...props}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
+          <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 select-none">
+              <span className="text-[11px] sm:text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 select-none leading-tight">
                 {title}
               </span>
               {badge && (
@@ -52,7 +52,7 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
           </div>
           {icon && (
             <div
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100/90 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-600 dark:text-zinc-300 shrink-0 select-none"
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-100/90 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-600 dark:text-zinc-300 shrink-0 select-none"
               aria-hidden="true"
             >
               {icon}
@@ -60,8 +60,8 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
           )}
         </div>
 
-        <div className="mt-3">
-          <div className="text-2xl font-bold font-mono tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+        <div className="mt-2.5 sm:mt-3">
+          <div className="text-lg sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
             {value}
           </div>
 
