@@ -292,6 +292,34 @@ export const ApplicationListTable: React.FC<ApplicationListTableProps> = ({
                     >
                       {config.label}
                     </Badge>
+                    {app.coMakerRequired && (
+                      <div className="mt-1">
+                        {app.coMakerStatus === 'pending' && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium"
+                            data-testid={`co-maker-badge-${app.id}`}
+                          >
+                            ⏳ Awaiting Co-Maker ({app.coMakerName})
+                          </span>
+                        )}
+                        {app.coMakerStatus === 'accepted' && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium"
+                            data-testid={`co-maker-badge-${app.id}`}
+                          >
+                            ✓ Co-Maker: {app.coMakerName}
+                          </span>
+                        )}
+                        {app.coMakerStatus === 'declined' && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] text-rose-600 dark:text-rose-400 font-medium"
+                            data-testid={`co-maker-badge-${app.id}`}
+                          >
+                            ✕ Co-Maker Declined
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </TableCell>
 
                   {/* Actions Column */}

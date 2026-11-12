@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShieldAlert,
+  ShieldCheck,
   CheckCircle2,
   XCircle,
   Coins,
@@ -282,9 +283,17 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
                   size="md"
                   onClick={handleApprove}
                   isLoading={isSubmitting && activeAction === 'approve'}
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    (application.coMakerRequired && application.coMakerStatus !== 'accepted')
+                  }
                   icon={<CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                   data-testid="approve-application-button"
+                  title={
+                    application.coMakerRequired && application.coMakerStatus !== 'accepted'
+                      ? 'Cannot approve: Nominated co-maker has not yet accepted endorsement.'
+                      : undefined
+                  }
                 >
                   Approve Application
                 </Button>
@@ -296,12 +305,18 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
                 size="md"
                 onClick={handleDisburse}
                 isLoading={isSubmitting && activeAction === 'disburse'}
-                disabled={isSubmitting || !hasSufficientFunds}
+                disabled={
+                  isSubmitting ||
+                  !hasSufficientFunds ||
+                  (application.coMakerRequired && application.coMakerStatus !== 'accepted')
+                }
                 icon={<Coins className="w-4 h-4" />}
                 className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white"
                 data-testid="disburse-loan-button"
                 title={
-                  !hasSufficientFunds
+                  application.coMakerRequired && application.coMakerStatus !== 'accepted'
+                    ? 'Cannot disburse: Nominated co-maker has not yet accepted endorsement.'
+                    : !hasSufficientFunds
                     ? 'Cannot disburse: insufficient liquidity in fund pool'
                     : 'Disburse principal to borrower and generate active loan'
                 }
@@ -413,6 +428,64 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Co-Maker Guarantee Status Card */}
+        {application.coMakerRequired && (
+          <div
+            className={cn(
+              'rounded-xl border p-4 space-y-2',
+              application.coMakerStatus === 'accepted'
+                ? 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/20'
+                : application.coMakerStatus === 'declined'
+                ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20'
+                : 'border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/20'
+            )}
+            data-testid="application-co-maker-card"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck
+                  className={cn(
+                    'w-4 h-4',
+                    application.coMakerStatus === 'accepted'
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : application.coMakerStatus === 'declined'
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  )}
+                />
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                  Co-Maker Guarantee: {application.coMakerName || 'Nominated Member'}
+                </span>
+              </div>
+              <Badge
+                variant={
+                  application.coMakerStatus === 'accepted'
+                    ? 'emerald'
+                    : application.coMakerStatus === 'declined'
+                    ? 'rose'
+                    : 'amber'
+                }
+                size="sm"
+                data-testid="co-maker-status-badge"
+              >
+                {application.coMakerStatus === 'accepted'
+                  ? '✓ Endorsed'
+                  : application.coMakerStatus === 'declined'
+                  ? '✕ Declined'
+                  : '⏳ Awaiting Acceptance'}
+              </Badge>
+            </div>
+
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              {application.coMakerStatus === 'accepted'
+                ? `Nominated co-maker ${application.coMakerName} has accepted joint and solidary liability for this loan.`
+                : application.coMakerStatus === 'declined'
+                ? `Nominated co-maker ${application.coMakerName} declined this endorsement request. This application cannot be approved.`
+                : `Nominated co-maker ${application.coMakerName} must review and accept the joint liability agreement in their dashboard before this loan can be approved or disbursed.`}
+            </p>
+          </div>
+        )}
 
         {/* Borrower Credit Score Card */}
         {borrower && (

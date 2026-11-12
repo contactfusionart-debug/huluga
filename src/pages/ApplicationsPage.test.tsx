@@ -422,6 +422,94 @@ describe('Loan Application & Member Self-Service Feature', () => {
       // Total Rejected counter increments
       expect(screen.getByTestId('stat-rejected').textContent).toContain('1');
     });
+
+    it('locks approval when co-maker endorsement is pending', async () => {
+      // Seed an application requiring co-maker that is pending
+      const apps = await adapter.getLoanApplications();
+      apps.push({
+        id: 'app-co-lock-test',
+        borrowerId: 'user-2',
+        borrowerName: 'Juan Dela Cruz',
+        requestedAmount: 30000,
+        purpose: 'Truck transmission repair',
+        monthlyInterestRate: 5.0,
+        status: 'pending',
+        appliedDate: '2026-03-01',
+        coMakerRequired: true,
+        coMakerId: 'user-1',
+        coMakerName: 'Maria Santos',
+        coMakerStatus: 'pending',
+      });
+      window.localStorage.setItem('huluga_applications', JSON.stringify(apps));
+
+      renderApplicationsPage(mockTreasurer);
+
+      // Verify co-maker badge is rendered in table
+      expect(await screen.findByTestId('co-maker-badge-app-co-lock-test')).toBeDefined();
+      expect(screen.getByTestId('co-maker-badge-app-co-lock-test').textContent).toContain('Awaiting Co-Maker');
+
+      // Open review modal
+      const reviewBtn = screen.getByTestId('review-button-app-co-lock-test');
+      fireEvent.click(reviewBtn);
+
+      expect(await screen.findByTestId('application-co-maker-card')).toBeDefined();
+
+      // Approve button should be disabled while co-maker is pending
+      const approveBtn = screen.getByTestId('approve-application-button') as HTMLButtonElement;
+      expect(approveBtn.disabled).toBe(true);
+
+      // Disburse button should also be disabled
+      const disburseBtn = screen.getByTestId('disburse-loan-button') as HTMLButtonElement;
+      expect(disburseBtn.disabled).toBe(true);
+    });
+
+    it('enables approval and preserves co-maker when endorsement is accepted', async () => {
+      // Seed an application where co-maker has accepted endorsement
+      const apps = await adapter.getLoanApplications();
+      apps.push({
+        id: 'app-co-accepted-test',
+        borrowerId: 'user-2',
+        borrowerName: 'Juan Dela Cruz',
+        requestedAmount: 30000,
+        purpose: 'Irrigation line pipes',
+        monthlyInterestRate: 5.0,
+        status: 'pending',
+        appliedDate: '2026-03-01',
+        coMakerRequired: true,
+        coMakerId: 'user-1',
+        coMakerName: 'Maria Santos',
+        coMakerStatus: 'accepted',
+      });
+      window.localStorage.setItem('huluga_applications', JSON.stringify(apps));
+
+      renderApplicationsPage(mockTreasurer);
+
+      // Verify endorsed badge is rendered in table
+      expect(await screen.findByTestId('co-maker-badge-app-co-accepted-test')).toBeDefined();
+      expect(screen.getByTestId('co-maker-badge-app-co-accepted-test').textContent).toContain('Co-Maker: Maria Santos');
+
+      // Open review modal
+      const reviewBtn = screen.getByTestId('review-button-app-co-accepted-test');
+      fireEvent.click(reviewBtn);
+
+      expect(await screen.findByTestId('application-co-maker-card')).toBeDefined();
+
+      // Approve button should be unlocked
+      const approveBtn = (await screen.findByTestId('approve-application-button')) as HTMLButtonElement;
+      expect(approveBtn.disabled).toBe(false);
+
+      // Approve the application
+      fireEvent.click(approveBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Review Loan Application')).toBeNull();
+      });
+
+      await waitFor(() => {
+        const badge = screen.getByTestId('status-badge-app-co-accepted-test');
+        expect(badge.textContent).toContain('Approved');
+      });
+    });
   });
 
   describe('Treasurer Loan Disbursement & Double-Entry Verification', () => {
