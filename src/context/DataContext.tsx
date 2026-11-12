@@ -373,7 +373,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
             direction: 'inflow',
             memberId: created.id,
             memberName: created.fullName,
-            recordedBy: currentUser?.fullName || 'Treasurer',
+            recordedBy: currentUser?.id || currentUser?.fullName || 'Treasurer',
             description:
               input.notes?.trim() ||
               `Initial share capital (${sharesCount} ${sharesCount === 1 ? 'share' : 'shares'})`,

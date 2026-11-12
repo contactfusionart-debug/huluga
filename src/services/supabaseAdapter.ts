@@ -182,6 +182,53 @@ function mapProfileFromDb(row: DbProfile): UserProfile {
   };
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveProfileUuid(
+  client: SupabaseClient,
+  candidate?: string | null,
+  fallbackMemberId?: string | null
+): Promise<string> {
+  if (candidate && UUID_REGEX.test(candidate)) {
+    return candidate;
+  }
+
+  try {
+    const { data: authData } = await client.auth.getUser();
+    if (authData?.user?.id && UUID_REGEX.test(authData.user.id)) {
+      return authData.user.id;
+    }
+  } catch {
+    // ignore auth lookup errors
+  }
+
+  if (candidate) {
+    const { data: matched } = await client
+      .from('profiles')
+      .select('id')
+      .or(`username.eq.${candidate},full_name.eq.${candidate}`)
+      .limit(1);
+    if (matched && matched[0]?.id) {
+      return matched[0].id as string;
+    }
+  }
+
+  const { data: treasurers } = await client
+    .from('profiles')
+    .select('id')
+    .eq('role', 'treasurer')
+    .limit(1);
+  if (treasurers && treasurers[0]?.id) {
+    return treasurers[0].id as string;
+  }
+
+  if (fallbackMemberId && UUID_REGEX.test(fallbackMemberId)) {
+    return fallbackMemberId;
+  }
+
+  throw new Error(`Could not resolve a valid profile UUID for "${candidate || 'unknown'}".`);
+}
+
 function mapFundEntryFromDb(row: DbFundEntry): FundEntry {
   return {
     id: row.id,
@@ -348,13 +395,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
   async addFundEntry(entry: Omit<FundEntry, 'id'>): Promise<FundEntry> {
     const client = this.getClient();
+    const recordedById = await resolveProfileUuid(client, entry.recordedBy, entry.memberId);
     const row = {
       type: entry.type,
       amount: entry.amount,
       direction: entry.direction,
       member_id: entry.memberId || null,
       member_name: entry.memberName || null,
-      recorded_by: entry.recordedBy,
+      recorded_by: recordedById,
       description: entry.description,
       date: entry.date,
       reference_no: entry.referenceNo || null,
