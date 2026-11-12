@@ -118,12 +118,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
 
             if (error) {
               // Fallback: allow enrolled members with username + generated_password in profiles table
-              const { data: matchedProfile } = await client
-                .from('profiles')
-                .select('*')
-                .eq('username', cleanUsername)
-                .eq('generated_password', password)
-                .maybeSingle();
+              let matchedProfile: any = null;
+
+              const { data: rpcData, error: rpcError } = await client.rpc('member_login', {
+                p_username: cleanUsername,
+                p_password: password,
+              });
+              if (!rpcError && Array.isArray(rpcData) && rpcData[0]) {
+                matchedProfile = rpcData[0];
+              } else if (!rpcError && rpcData && !Array.isArray(rpcData)) {
+                matchedProfile = rpcData;
+              } else {
+                const { data: tableMatch } = await client
+                  .from('profiles')
+                  .select('*')
+                  .ilike('username', cleanUsername)
+                  .eq('generated_password', password)
+                  .maybeSingle();
+                matchedProfile = tableMatch;
+              }
 
               if (matchedProfile) {
                 if (matchedProfile.status === 'suspended') {
@@ -498,12 +511,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
                 return { success: false, error: authErr.message };
               }
             }
-            const { error: profileErr } = await client
-              .from('profiles')
-              .update({ generated_password: trimmed })
-              .eq('id', currentUser.id);
-            if (profileErr) {
-              return { success: false, error: profileErr.message };
+            const { error: rpcErr } = await client.rpc('member_change_password', {
+              p_profile_id: currentUser.id,
+              p_new_password: trimmed,
+            });
+            if (rpcErr) {
+              const { error: profileErr } = await client
+                .from('profiles')
+                .update({ generated_password: trimmed })
+                .eq('id', currentUser.id);
+              if (profileErr) {
+                return { success: false, error: profileErr.message };
+              }
             }
           }
         } catch (err) {

@@ -224,6 +224,33 @@ create policy "Treasurers can update app settings"
   to authenticated
   using (public.is_treasurer());
 
+-- ENROLLED MEMBER AUTHENTICATION RPCS
+create or replace function public.member_login(p_username text, p_password text)
+returns setof public.profiles
+language sql
+security definer
+as $$
+  select *
+  from public.profiles
+  where lower(username) = lower(trim(p_username))
+    and generated_password = p_password
+  limit 1;
+$$;
+
+grant execute on function public.member_login(text, text) to anon, authenticated;
+
+create or replace function public.member_change_password(p_profile_id uuid, p_new_password text)
+returns void
+language sql
+security definer
+as $$
+  update public.profiles
+  set generated_password = p_new_password
+  where id = p_profile_id;
+$$;
+
+grant execute on function public.member_change_password(uuid, text) to anon, authenticated;
+
 -- ==============================================================================
 -- AUTH TRIGGER: AUTO-CREATE PROFILE ON SIGNUP
 -- ==============================================================================
