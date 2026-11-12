@@ -75,12 +75,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {currentUser.fullName}
                 </span>
 
-                <Badge variant="emerald" size="sm" className="font-semibold">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                    Treasurer
-                  </span>
-                </Badge>
+                {currentUser.role === 'treasurer' ? (
+                  <Badge variant="emerald" size="sm" className="font-semibold">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                      Treasurer
+                    </span>
+                  </Badge>
+                ) : (
+                  <Badge variant="zinc" size="sm" className="font-semibold">
+                    Member
+                  </Badge>
+                )}
               </div>
 
               <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" aria-hidden="true" />
