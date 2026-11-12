@@ -173,7 +173,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
             )}
           >
             <span>All</span>
-            <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
+            <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-full bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
               {totalMembers}
             </span>
           </button>
@@ -192,7 +192,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
             )}
           >
             <span>Treasurers</span>
-            <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
+            <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-full bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
               {treasurersCount}
             </span>
           </button>
@@ -211,7 +211,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
             )}
           >
             <span>Members</span>
-            <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
+            <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-full bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
               {regularMembersCount}
             </span>
           </button>
