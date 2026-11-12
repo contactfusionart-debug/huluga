@@ -21,7 +21,8 @@ import type { DatabaseAdapter } from '../services/databaseAdapter';
 import { localStorageAdapter } from '../services/localStorageAdapter';
 import { supabaseAdapter, isSupabaseConfigured } from '../services/supabaseAdapter';
 import { AuthContext } from './AuthContext';
-import { generateMemberCredentials } from '../utils/formatters';
+import { generateMemberCredentials, formatCurrency } from '../utils/formatters';
+import { getMemberCreditSummary } from '../utils/creditLimit';
 
 export type DataSourceType = 'local' | 'supabase';
 export const DATA_SOURCE_STORAGE_KEY = 'huluga_data_source';
@@ -34,6 +35,7 @@ export interface EnrollMemberInput {
   phoneNumber?: string;
   sharesCount: number;
   enrollmentMode: 'paid' | 'committed';
+  creditLimit?: number;
   joinedDate?: string;
   notes?: string;
 }
@@ -62,6 +64,7 @@ export interface DataContextValue {
   getPayments: (loanId?: string) => Promise<LoanPayment[]>;
   updateSettings: (newSettings: Partial<AppSettings>) => Promise<AppSettings>;
   updateMemberRole: (memberId: string, role: UserRole) => Promise<void>;
+  updateMemberCreditLimit: (memberId: string, creditLimit?: number) => Promise<void>;
   enrollMember: (input: EnrollMemberInput) => Promise<UserProfile>;
   resetToMockData: () => Promise<void>;
   setDataSource: (source: DataSourceType) => Promise<void>;
@@ -189,6 +192,19 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     ): Promise<LoanApplication> => {
       setError(null);
       try {
+        const borrower = members.find((m) => m.id === app.borrowerId);
+        const creditSummary = getMemberCreditSummary(
+          borrower,
+          loans,
+          applications,
+          settings.memberLoanLimit
+        );
+        if (creditSummary.hasLimit && app.requestedAmount > creditSummary.availableCredit) {
+          throw new Error(
+            `Requested amount (${formatCurrency(app.requestedAmount, settings.currencySymbol)}) exceeds available credit limit (${formatCurrency(creditSummary.availableCredit, settings.currencySymbol)}).`
+          );
+        }
+
         const result = await adapterRef.current.createLoanApplication(app);
         await refreshData();
         return result;
@@ -198,7 +214,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [refreshData]
+    [members, loans, applications, settings.memberLoanLimit, settings.currencySymbol, refreshData]
   );
 
   const updateApplicationStatus = useCallback(
@@ -209,6 +225,25 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     ): Promise<LoanApplication> => {
       setError(null);
       try {
+        if (status === 'approved') {
+          const targetApp = applications.find((a) => a.id === id);
+          if (targetApp) {
+            const borrower = members.find((m) => m.id === targetApp.borrowerId);
+            const otherApps = applications.filter((a) => a.id !== id);
+            const creditSummary = getMemberCreditSummary(
+              borrower,
+              loans,
+              otherApps,
+              settings.memberLoanLimit
+            );
+            if (creditSummary.hasLimit && targetApp.requestedAmount > creditSummary.availableCredit) {
+              throw new Error(
+                `Cannot approve: requested amount exceeds available credit limit (${formatCurrency(creditSummary.availableCredit, settings.currencySymbol)}).`
+              );
+            }
+          }
+        }
+
         const reviewerId = currentUser?.id;
         const result = await adapterRef.current.updateApplicationStatus(
           id,
@@ -224,7 +259,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [currentUser, refreshData]
+    [applications, members, loans, settings.memberLoanLimit, settings.currencySymbol, currentUser, refreshData]
   );
 
   const disburseLoan = useCallback(
@@ -314,6 +349,32 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     [refreshData]
   );
 
+  const updateMemberCreditLimit = useCallback(
+    async (memberId: string, creditLimit?: number): Promise<void> => {
+      setError(null);
+      try {
+        const member = members.find((m) => m.id === memberId);
+        if (!member) {
+          throw new Error('Member not found.');
+        }
+        const normalizedLimit =
+          creditLimit !== undefined && Number.isFinite(creditLimit) && creditLimit > 0
+            ? Math.round(creditLimit * 100) / 100
+            : undefined;
+        await adapterRef.current.createProfile({
+          ...member,
+          creditLimit: normalizedLimit,
+        });
+        await refreshData();
+      } catch (err: any) {
+        const msg = err?.message || 'Failed to update member credit limit.';
+        setError(msg);
+        throw err;
+      }
+    },
+    [members, refreshData]
+  );
+
   const enrollMember = useCallback(
     async (input: EnrollMemberInput): Promise<UserProfile> => {
       setError(null);
@@ -361,6 +422,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({
           status: 'active',
           committedShares: input.enrollmentMode === 'committed' ? sharesCount : 0,
           committedCapital: input.enrollmentMode === 'committed' ? capitalAmount : 0,
+          creditLimit:
+            input.creditLimit !== undefined && input.creditLimit > 0
+              ? Math.round(input.creditLimit * 100) / 100
+              : undefined,
         };
 
         const created = await adapterRef.current.createProfile(newProfile);
@@ -451,6 +516,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       getPayments,
       updateSettings,
       updateMemberRole,
+      updateMemberCreditLimit,
       enrollMember,
       resetToMockData,
       setDataSource,
@@ -473,6 +539,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       getPayments,
       updateSettings,
       updateMemberRole,
+      updateMemberCreditLimit,
       enrollMember,
       resetToMockData,
       setDataSource,

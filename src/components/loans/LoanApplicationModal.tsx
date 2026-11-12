@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { getMemberCreditSummary } from '../../utils/creditLimit';
 import type { LoanApplication } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -24,7 +25,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
   onSuccess,
 }) => {
   const { currentUser, isTreasurer } = useAuth();
-  const { members, settings, createLoanApplication, fundEntries } = useData();
+  const { members, settings, createLoanApplication, fundEntries, loans, applications } = useData();
   const { showToast } = useToast();
 
   const [borrowerId, setBorrowerId] = useState<string>('');
@@ -70,6 +71,11 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
     );
   }, [members, borrowerId, currentUser]);
 
+  const creditSummary = useMemo(
+    () => getMemberCreditSummary(selectedBorrower, loans, applications, loanLimit),
+    [selectedBorrower, loans, applications, loanLimit]
+  );
+
   // Parsed amount and live interest calculations
   const parsedAmount = useMemo(() => {
     const val = parseFloat(amount);
@@ -91,8 +97,10 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
     const numAmount = parseFloat(amount);
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
       newErrors.amount = 'Loan amount must be greater than 0';
-    } else if (loanLimit !== undefined && loanLimit > 0 && numAmount > loanLimit) {
-      newErrors.amount = `Requested amount exceeds member loan limit of ${formatCurrency(loanLimit)}`;
+    } else if (creditSummary.hasLimit && numAmount > creditSummary.creditLimit) {
+      newErrors.amount = `Requested amount exceeds member loan limit of ${formatCurrency(creditSummary.creditLimit)}`;
+    } else if (creditSummary.hasLimit && numAmount > creditSummary.availableCredit) {
+      newErrors.amount = `Requested amount exceeds available credit of ${formatCurrency(creditSummary.availableCredit)} (Limit: ${formatCurrency(creditSummary.creditLimit)}, Used: ${formatCurrency(creditSummary.usedCredit)})`;
     }
 
     if (!purpose.trim()) {
@@ -250,9 +258,14 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
             >
               Requested Principal Amount
             </label>
-            {loanLimit !== undefined && loanLimit > 0 && (
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
-                Max limit: {formatCurrency(loanLimit)}
+            {creditSummary.hasLimit && (
+              <span
+                className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tabular-nums"
+                data-testid="available-credit-label"
+              >
+                {creditSummary.usedCredit > 0
+                  ? `Available: ${formatCurrency(creditSummary.availableCredit)} / ${formatCurrency(creditSummary.creditLimit)}`
+                  : `Max limit: ${formatCurrency(creditSummary.creditLimit)}`}
               </span>
             )}
           </div>

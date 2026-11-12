@@ -25,6 +25,7 @@ create table if not exists public.profiles (
   status text not null default 'active' check (status in ('active', 'suspended')),
   committed_shares numeric(10,2) not null default 0,
   committed_capital numeric(14,2) not null default 0,
+  credit_limit numeric(14,2),
   generated_password text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

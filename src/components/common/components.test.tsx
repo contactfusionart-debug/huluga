@@ -549,6 +549,7 @@ describe('Base UI Component Library', () => {
         getPayments: async () => [],
         updateSettings: async () => ({} as any),
         updateMemberRole: async () => {},
+        updateMemberCreditLimit: async () => {},
         enrollMember: async () => ({} as any),
         resetToMockData: async () => {},
         setDataSource: async () => {},

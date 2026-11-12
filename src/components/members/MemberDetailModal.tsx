@@ -18,6 +18,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { formatCurrency, formatDate, formatPercent } from '../../utils/formatters';
+import { getMemberCreditSummary } from '../../utils/creditLimit';
 import type { UserProfile, UserRole } from '../../types';
 import { getInitials } from './MemberCard';
 import { cn } from '../../utils/cn';
@@ -34,17 +35,47 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   onClose,
 }) => {
   const { currentUser, isTreasurer } = useAuth();
-  const { members, fundEntries, loans, settings, updateMemberRole, addFundEntry } = useData();
+  const {
+    members,
+    fundEntries,
+    loans,
+    applications,
+    settings,
+    updateMemberRole,
+    updateMemberCreditLimit,
+    addFundEntry,
+  } = useData();
   const { showToast } = useToast();
 
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [isRecordingShareInterest, setIsRecordingShareInterest] = useState(false);
+  const [creditLimitInput, setCreditLimitInput] = useState<string>('');
+  const [isUpdatingCreditLimit, setIsUpdatingCreditLimit] = useState(false);
 
   // Keep member details synchronized with DataContext changes (e.g. after role update)
   const currentMember = useMemo(() => {
     if (!member) return null;
     return members.find((m) => m.id === member.id) || member;
   }, [members, member]);
+
+  const creditSummary = useMemo(
+    () =>
+      getMemberCreditSummary(
+        currentMember ?? undefined,
+        loans,
+        applications,
+        settings?.memberLoanLimit
+      ),
+    [currentMember, loans, applications, settings?.memberLoanLimit]
+  );
+
+  React.useEffect(() => {
+    if (isOpen && currentMember) {
+      setCreditLimitInput(
+        currentMember.creditLimit !== undefined ? String(currentMember.creditLimit) : ''
+      );
+    }
+  }, [isOpen, currentMember]);
 
   // Member capital contributions
   const memberContributions = useMemo(() => {
@@ -314,6 +345,131 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
             </div>
           );
         })()}
+
+        {/* Credit Limit & Borrowing Exposure */}
+        <div
+          className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-4 space-y-3"
+          data-testid="member-credit-limit-section"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Credit Limit &amp; Borrowing Exposure
+              </h4>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {creditSummary.isCustomLimit
+                  ? 'Custom per-member credit limit'
+                  : 'Using organization default loan limit'}
+              </p>
+            </div>
+            <div className="text-right font-mono text-xs">
+              <div className="text-zinc-500 dark:text-zinc-400">
+                Available:{' '}
+                <strong
+                  data-testid="member-available-credit"
+                  className="text-emerald-700 dark:text-emerald-400"
+                >
+                  {creditSummary.hasLimit
+                    ? formatCurrency(creditSummary.availableCredit)
+                    : 'Unlimited'}
+                </strong>
+              </div>
+              {creditSummary.hasLimit && (
+                <div className="text-zinc-500 dark:text-zinc-400">
+                  Used {formatCurrency(creditSummary.usedCredit)} of{' '}
+                  {formatCurrency(creditSummary.creditLimit)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {creditSummary.hasLimit && (
+            <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+              <div
+                className={cn(
+                  'h-full transition-all',
+                  creditSummary.utilizationPercent >= 90
+                    ? 'bg-rose-500'
+                    : creditSummary.utilizationPercent >= 70
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500'
+                )}
+                style={{ width: `${creditSummary.utilizationPercent}%` }}
+              />
+            </div>
+          )}
+
+          {isTreasurer && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <input
+                type="number"
+                min="0"
+                step="500"
+                value={creditLimitInput}
+                onChange={(e) => setCreditLimitInput(e.target.value)}
+                placeholder={`Org default (${formatCurrency(settings?.memberLoanLimit ?? 50000)})`}
+                data-testid="member-credit-limit-input"
+                className="flex-1 min-w-[180px] px-3 py-1.5 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                isLoading={isUpdatingCreditLimit}
+                data-testid="save-credit-limit-btn"
+                onClick={async () => {
+                  const parsed = creditLimitInput.trim()
+                    ? parseFloat(creditLimitInput)
+                    : undefined;
+                  if (parsed !== undefined && (isNaN(parsed) || parsed <= 0)) {
+                    showToast('Credit limit must be greater than 0, or leave blank for default.', 'error');
+                    return;
+                  }
+                  setIsUpdatingCreditLimit(true);
+                  try {
+                    await updateMemberCreditLimit(currentMember.id, parsed);
+                    showToast(
+                      parsed
+                        ? `Credit limit set to ${formatCurrency(parsed)} for ${currentMember.fullName}.`
+                        : `Credit limit reset to organization default for ${currentMember.fullName}.`,
+                      'success'
+                    );
+                  } catch (err: any) {
+                    showToast(err?.message || 'Failed to update credit limit.', 'error');
+                  } finally {
+                    setIsUpdatingCreditLimit(false);
+                  }
+                }}
+              >
+                Save Limit
+              </Button>
+              {creditSummary.isCustomLimit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isLoading={isUpdatingCreditLimit}
+                  data-testid="reset-credit-limit-btn"
+                  onClick={async () => {
+                    setIsUpdatingCreditLimit(true);
+                    try {
+                      await updateMemberCreditLimit(currentMember.id, undefined);
+                      setCreditLimitInput('');
+                      showToast(
+                        `Credit limit reset to organization default for ${currentMember.fullName}.`,
+                        'success'
+                      );
+                    } catch (err: any) {
+                      showToast(err?.message || 'Failed to reset credit limit.', 'error');
+                    } finally {
+                      setIsUpdatingCreditLimit(false);
+                    }
+                  }}
+                >
+                  Use Default
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Treasurer Administrative Controls (Hidden for regular members) */}
         {isTreasurer && (

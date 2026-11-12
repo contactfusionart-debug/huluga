@@ -24,6 +24,7 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
   const currency = settings?.currencySymbol || '₱';
   const shareValue = settings?.shareValue || DEFAULT_SHARE_VALUE;
   const monthlyRate = settings?.defaultMonthlyInterestRate ?? 5.0;
+  const defaultLoanLimit = settings?.memberLoanLimit ?? 50000;
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -31,6 +32,7 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
   const [username, setUsername] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [sharesCount, setSharesCount] = useState<string>('1');
+  const [creditLimit, setCreditLimit] = useState<string>('');
   const [enrollmentMode, setEnrollmentMode] = useState<'paid' | 'committed'>('paid');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +57,7 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
     setUsername('');
     setPhoneNumber('');
     setSharesCount('1');
+    setCreditLimit('');
     setEnrollmentMode('paid');
     setNotes('');
     setError(null);
@@ -83,6 +86,7 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
 
     setIsSubmitting(true);
     try {
+      const parsedCreditLimit = creditLimit.trim() ? parseFloat(creditLimit) : undefined;
       const enrolled = await enrollMember({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -91,6 +95,10 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
         phoneNumber: phoneNumber.trim() || undefined,
         sharesCount: numericShares,
         enrollmentMode,
+        creditLimit:
+          parsedCreditLimit !== undefined && !isNaN(parsedCreditLimit) && parsedCreditLimit > 0
+            ? parsedCreditLimit
+            : undefined,
         notes: notes.trim() || undefined,
       });
 
@@ -301,6 +309,27 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
                 className="w-20 px-2.5 py-1.5 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <label
+              htmlFor="enroll-credit-limit"
+              className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+            >
+              Member Credit Limit ({currency}){' '}
+              <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <input
+              id="enroll-credit-limit"
+              type="number"
+              min="0"
+              step="500"
+              value={creditLimit}
+              onChange={(e) => setCreditLimit(e.target.value)}
+              data-testid="enroll-credit-limit-input"
+              placeholder={`Org default (${formatCurrency(defaultLoanLimit, currency)})`}
+              className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            />
           </div>
 
           {/* Payment Option Cards */}
