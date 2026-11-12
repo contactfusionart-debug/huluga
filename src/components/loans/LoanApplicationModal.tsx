@@ -312,6 +312,72 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
               {errors.amount}
             </p>
           )}
+
+          {/* Range Slider synced with Principal Amount */}
+          {(() => {
+            const sliderMax = Number.isFinite(creditSummary.maxLoanableAmount)
+              ? Math.max(0, creditSummary.maxLoanableAmount)
+              : Math.max(50000, parsedAmount);
+            const sliderValue = Math.min(parsedAmount, sliderMax);
+            const sliderStep = sliderMax > 0 && sliderMax < 1000 ? 10 : 50;
+
+            return (
+              <div className="mt-2.5 space-y-1.5">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={sliderMax}
+                    step={sliderStep}
+                    value={sliderValue}
+                    disabled={isSubmitting || sliderMax <= 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setAmount(val > 0 ? String(val) : '');
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.amount;
+                        return next;
+                      });
+                    }}
+                    aria-label="Loan amount slider"
+                    data-testid="loan-amount-slider"
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-zinc-200 dark:bg-zinc-700 accent-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  {sliderMax > 0 && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => {
+                        setAmount(String(sliderMax));
+                        setErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.amount;
+                          return next;
+                        });
+                      }}
+                      className="shrink-0 px-2 py-0.5 text-[11px] font-medium rounded border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                    >
+                      Max
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+                  <span>₱0</span>
+                  <span>
+                    {Number.isFinite(creditSummary.maxLoanableAmount)
+                      ? `Max: ${formatCurrency(sliderMax)}`
+                      : `Up to ${formatCurrency(sliderMax)}`}
+                  </span>
+                </div>
+                {creditSummary.blockReason && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {creditSummary.blockReason}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Live 5% Monthly Interest Calculator Preview Card */}
