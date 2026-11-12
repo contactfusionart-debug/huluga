@@ -245,6 +245,46 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
         expect(screen.queryByTestId('change-password-form')).toBeNull();
       });
     });
+
+    it('displays pending co-maker requests and allows member to review and accept', async () => {
+      // Seed a pending application with Juan as co-maker
+      const apps = await adapter.getLoanApplications();
+      apps.push({
+        id: 'app-co-maker-test',
+        borrowerId: 'user-3',
+        borrowerName: 'Ana Reyes',
+        requestedAmount: 25000,
+        purpose: 'Organic fertilizer wholesale stock',
+        monthlyInterestRate: 5.0,
+        status: 'pending',
+        appliedDate: '2026-03-01',
+        coMakerRequired: true,
+        coMakerId: 'user-2',
+        coMakerName: 'Juan Dela Cruz',
+        coMakerStatus: 'pending',
+      });
+      window.localStorage.setItem('huluga_applications', JSON.stringify(apps));
+
+      renderWithProviders(<DashboardPage />, {
+        initialUser: mockMemberJuan,
+      });
+
+      expect(await screen.findByTestId('co-maker-requests-banner')).toBeDefined();
+      expect(screen.getByText(/Organic fertilizer wholesale stock/i)).toBeDefined();
+
+      // Click Review & Sign
+      fireEvent.click(screen.getByTestId('review-co-maker-btn-app-co-maker-test'));
+      expect(await screen.findByText('Co-Maker Endorsement Review')).toBeDefined();
+
+      // Accept joint liability checkbox
+      fireEvent.click(screen.getByTestId('accept-co-maker-checkbox'));
+      fireEvent.click(screen.getByTestId('confirm-co-maker-btn'));
+
+      // Modal closes and banner disappears (no more pending requests)
+      await waitFor(() => {
+        expect(screen.queryByTestId('co-maker-requests-banner')).toBeNull();
+      });
+    });
   });
 
   // ============================================================================

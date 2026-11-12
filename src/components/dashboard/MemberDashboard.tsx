@@ -32,6 +32,8 @@ import { Badge } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
 import { Modal } from '../common/Modal';
 import { LoanApplicationModal } from '../loans/LoanApplicationModal';
+import { CoMakerConsentModal } from '../loans/CoMakerConsentModal';
+import type { LoanApplication } from '../../types';
 import { cn } from '../../utils/cn';
 
 function matchesUser(
@@ -53,11 +55,12 @@ function matchesUser(
 
 export const MemberDashboard: React.FC = () => {
   const { currentUser, changePassword } = useAuth();
-  const { fundEntries, loans, applications, members, settings } = useData();
+  const { fundEntries, loans, applications, members, settings, updateCoMakerStatus } = useData();
   const { showToast } = useToast();
 
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [selectedCoMakerApp, setSelectedCoMakerApp] = useState<LoanApplication | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -70,6 +73,18 @@ export const MemberDashboard: React.FC = () => {
     if (!currentUser) return undefined;
     return members.find((m) => m.id === currentUser.id) || currentUser;
   }, [members, currentUser]);
+
+  const pendingCoMakerRequests = useMemo(() => {
+    if (!currentUser) return [];
+    return applications.filter(
+      (app) =>
+        app.status === 'pending' &&
+        app.coMakerRequired &&
+        app.coMakerStatus === 'pending' &&
+        (app.coMakerId === currentUser.id ||
+          (currentUser.fullName && app.coMakerName?.toLowerCase() === currentUser.fullName.toLowerCase()))
+    );
+  }, [applications, currentUser]);
 
   const metrics = useMemo(() => {
     const memberTransactions = fundEntries
@@ -213,6 +228,62 @@ export const MemberDashboard: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Pending Co-Maker Endorsement Requests */}
+      {pendingCoMakerRequests.length > 0 && (
+        <div
+          className="rounded-xl border border-amber-300 dark:border-amber-700/70 bg-gradient-to-r from-amber-50 to-orange-50/70 dark:from-amber-950/40 dark:to-orange-950/30 p-4 sm:p-5 shadow-sm space-y-3"
+          data-testid="co-maker-requests-banner"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-950 dark:text-amber-100">
+                Action Required: Co-Maker Endorsement Requests ({pendingCoMakerRequests.length})
+              </h3>
+              <p className="text-xs text-amber-800 dark:text-amber-300/90">
+                A member has nominated you as a co-maker/guarantor for their loan application.
+              </p>
+            </div>
+          </div>
+
+          <div className="divide-y divide-amber-200/60 dark:divide-amber-800/60">
+            {pendingCoMakerRequests.map((req) => (
+              <div
+                key={req.id}
+                className="pt-3 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                data-testid={`co-maker-request-${req.id}`}
+              >
+                <div>
+                  <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {req.borrowerName} &bull;{' '}
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(req.requestedAmount, currency)}
+                    </span>
+                  </div>
+                  <div className="text-zinc-600 dark:text-zinc-400 text-[11px] mt-0.5">
+                    Purpose: {req.purpose} &bull; Requested on {formatDate(req.appliedDate)}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                    onClick={() => setSelectedCoMakerApp(req)}
+                    data-testid={`review-co-maker-btn-${req.id}`}
+                  >
+                    Review &amp; Sign
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Top 4 Stat Cards (2x2 on mobile, 4-col on desktop) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -568,6 +639,21 @@ export const MemberDashboard: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Co-Maker Review & Consent Modal */}
+      <CoMakerConsentModal
+        isOpen={Boolean(selectedCoMakerApp)}
+        onClose={() => setSelectedCoMakerApp(null)}
+        application={selectedCoMakerApp}
+        onAccept={async (applicationId) => {
+          await updateCoMakerStatus(applicationId, 'accepted');
+          showToast('You have accepted joint liability as co-maker.', 'success');
+        }}
+        onDecline={async (applicationId, notes) => {
+          await updateCoMakerStatus(applicationId, 'declined', notes);
+          showToast('Co-maker request declined.', 'info');
+        }}
+      />
     </div>
   );
 };
