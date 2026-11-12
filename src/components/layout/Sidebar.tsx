@@ -25,14 +25,15 @@ interface NavItemConfig {
   icon: React.ComponentType<{ className?: string }>;
   isPendingBadge?: boolean;
   treasurerNotice?: boolean;
+  treasurerOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
   { name: 'Home', to: '/', icon: LayoutDashboard },
-  { name: 'Shares', to: '/shares', icon: Wallet },
-  { name: 'Loans', to: '/loans', icon: HandCoins, isPendingBadge: true },
-  { name: 'Members', to: '/members', icon: Users },
-  { name: 'Settings', to: '/settings', icon: Settings, treasurerNotice: true },
+  { name: 'Shares', to: '/shares', icon: Wallet, treasurerOnly: true },
+  { name: 'Loans', to: '/loans', icon: HandCoins, isPendingBadge: true, treasurerOnly: true },
+  { name: 'Members', to: '/members', icon: Users, treasurerOnly: true },
+  { name: 'Settings', to: '/settings', icon: Settings, treasurerNotice: true, treasurerOnly: true },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
@@ -41,6 +42,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
   const data = useContext(DataContext);
 
   const isTreasurer = auth?.isTreasurer ?? false;
+  const isMember = auth?.currentUser?.role === 'member';
+  const visibleNavItems = isMember
+    ? NAV_ITEMS.filter((item) => !item.treasurerOnly)
+    : NAV_ITEMS;
   const applications = data?.applications ?? [];
   const defaultRate = data?.settings?.defaultMonthlyInterestRate ?? 5.0;
   const pendingCount = applications.filter((a) => a.status === 'pending').length;
@@ -67,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
             Menu
           </div>
           <nav className="space-y-1" aria-label="Main Navigation">
-            {NAV_ITEMS.map((item) => {
+            {visibleNavItems.map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
 

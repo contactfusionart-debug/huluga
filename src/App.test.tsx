@@ -278,5 +278,19 @@ describe('Application End-to-End Routing & Lifecycle Integration', () => {
 
       expect(screen.queryByRole('button', { name: /switch to juan dela cruz/i })).toBeNull();
     });
+
+    it('restricts Member accounts from treasurer tabs and redirects treasurer-only URLs to Member Dashboard', async () => {
+      render(<App initialUser={INITIAL_PROFILES[1]} useMemoryRouter initialEntries={['/members']} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('member-dashboard')).toBeDefined();
+      });
+
+      expect(screen.queryByRole('link', { name: /^shares$/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /^loans/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /members/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /settings/i })).toBeNull();
+      expect(screen.getByRole('link', { name: /home/i })).toBeDefined();
+    });
   });
 });

@@ -40,6 +40,14 @@ export function ProtectedLayout() {
   );
 }
 
+export function TreasurerOnlyRoute() {
+  const { isTreasurer } = useAuth();
+  if (!isTreasurer) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+}
+
 /**
  * Core application route definitions.
  */
@@ -51,14 +59,16 @@ export function AppRoutes() {
       {/* Protected routes wrapped in AppShell */}
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/shares" element={<SharesPage />} />
-        <Route path="/loans" element={<LoansHubPage />} />
-        <Route path="/members" element={<MembersPage />} />
-        {/* Legacy routes redirect to their new tabbed locations */}
-        <Route path="/funds" element={<Navigate to="/shares" replace />} />
-        <Route path="/dividends" element={<Navigate to="/shares?tab=dividends" replace />} />
-        <Route path="/applications" element={<Navigate to="/loans?tab=applications" replace />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route element={<TreasurerOnlyRoute />}>
+          <Route path="/shares" element={<SharesPage />} />
+          <Route path="/loans" element={<LoansHubPage />} />
+          <Route path="/members" element={<MembersPage />} />
+          {/* Legacy routes redirect to their new tabbed locations */}
+          <Route path="/funds" element={<Navigate to="/shares" replace />} />
+          <Route path="/dividends" element={<Navigate to="/shares?tab=dividends" replace />} />
+          <Route path="/applications" element={<Navigate to="/loans?tab=applications" replace />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
       </Route>
 
       {/* Authentication Route: Redirects to '/' if already authenticated */}
