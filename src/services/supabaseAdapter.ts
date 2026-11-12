@@ -102,6 +102,7 @@ interface DbFundEntry {
   id: string;
   type: string;
   amount: number;
+  shares_count?: number | null;
   direction: 'inflow' | 'outflow';
   member_id?: string | null;
   member_name?: string | null;
@@ -234,6 +235,7 @@ function mapFundEntryFromDb(row: DbFundEntry): FundEntry {
     id: row.id,
     type: row.type as FundEntry['type'],
     amount: Number(row.amount),
+    sharesCount: row.shares_count != null ? Number(row.shares_count) : undefined,
     direction: row.direction,
     memberId: row.member_id || undefined,
     memberName: row.member_name || undefined,
@@ -399,6 +401,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
     const row = {
       type: entry.type,
       amount: entry.amount,
+      shares_count: entry.sharesCount ?? null,
       direction: entry.direction,
       member_id: entry.memberId || null,
       member_name: entry.memberName || null,
