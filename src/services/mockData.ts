@@ -237,6 +237,7 @@ export const INITIAL_SETTINGS: AppSettings = {
   cycleYear: 2026,
   treasurerFeePercent: 10,
   customDividendFees: [],
+  coMakerLoanThreshold: 20000,
 };
 
 export function getInitialMockData() {

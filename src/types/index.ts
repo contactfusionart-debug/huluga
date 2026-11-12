@@ -41,6 +41,7 @@ export interface FundEntry {
 }
 
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected' | 'disbursed' | 'cancelled';
+export type CoMakerStatus = 'none' | 'pending' | 'accepted' | 'declined';
 
 export interface LoanApplication {
   id: string;
@@ -54,6 +55,12 @@ export interface LoanApplication {
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNotes?: string;
+  coMakerRequired?: boolean;
+  coMakerId?: string;
+  coMakerName?: string;
+  coMakerStatus?: CoMakerStatus;
+  coMakerRespondedAt?: string;
+  coMakerNotes?: string;
 }
 
 export type LoanStatus = 'active' | 'paid' | 'defaulted';
@@ -78,6 +85,8 @@ export interface Loan {
   interestPaid: number;
   lastPaymentDate?: string;
   notes?: string;
+  coMakerId?: string;
+  coMakerName?: string;
 }
 
 export interface LoanPayment {
@@ -115,6 +124,8 @@ export interface AppSettings {
   cycleYear?: number;
   treasurerFeePercent?: number;
   customDividendFees?: DividendFee[];
+  /** Threshold for requiring an eligible co-maker (default 20,000, 0 = disabled). */
+  coMakerLoanThreshold?: number;
 }
 
 export interface MemberDividendRow {

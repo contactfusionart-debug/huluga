@@ -122,6 +122,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     defaultMonthlyInterestRate: 5.0,
     shareValue: 2000,
     memberLoanLimit: 50000,
+    coMakerLoanThreshold: 20000,
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
