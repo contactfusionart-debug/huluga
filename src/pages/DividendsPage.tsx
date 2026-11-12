@@ -166,7 +166,7 @@ export const DividendsPage: React.FC = () => {
       </div>
 
       {/* Top 4 Summary StatCards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="dividend-summary-stats">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" data-testid="dividend-summary-stats">
         <StatCard
           title="Gross Interest Revenue"
           value={formatCurrency(dividendSummary.grossInterestRevenue, currency)}

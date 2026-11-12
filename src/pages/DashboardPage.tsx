@@ -123,7 +123,7 @@ export const DashboardPage: React.FC = () => {
       {/* ======================================================== */}
       <div className="space-y-8" data-testid="treasurer-dashboard">
           {/* Top 4 StatCards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <StatCard
               title="Net Liquid Fund Pool"
               value={formatCurrency(treasurerMetrics.netLiquidFundPool, currency)}

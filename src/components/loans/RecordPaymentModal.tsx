@@ -263,7 +263,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block">
             Payment Method
           </span>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {(['Cash', 'GCash', 'Bank Transfer', 'Other'] as const).map((method) => {
               const isSelected = paymentMethod === method;
               return (
