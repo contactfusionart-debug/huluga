@@ -319,49 +319,19 @@ describe('Funds Management Feature', () => {
       expect(screen.getByText('GCASH-98765')).toBeDefined();
     });
 
-    it('records an operational expense outflow, correctly deducting from liquid fund pool', async () => {
+    it('shows only Full Payment, Interest Payment, and Partial Payment transaction types', async () => {
       renderFundsPage(mockTreasurer);
 
-      expect(await screen.findByText('₱132,000.00')).toBeDefined();
-
-      // Open Modal
-      const recordBtn = screen.getByTestId('record-fund-entry-button');
+      const recordBtn = await screen.findByTestId('record-fund-entry-button');
       fireEvent.click(recordBtn);
-      expect(screen.getByTestId('add-fund-form')).toBeDefined();
 
-      // Switch type to "Expense"
-      const expenseTypeBtn = screen.getByRole('button', { name: /Expense/i });
-      fireEvent.click(expenseTypeBtn);
+      expect(screen.getByTestId('payment-option-full')).toBeDefined();
+      expect(screen.getByTestId('payment-option-interest')).toBeDefined();
+      expect(screen.getByTestId('payment-option-partial')).toBeDefined();
 
-      // Member select should NOT be rendered for Expense
-      expect(screen.queryByLabelText(/Contributing Member/i)).toBeNull();
-
-      // Enter Amount: 3,500
-      const amountInput = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput, { target: { value: '3500' } });
-
-      // Enter Reference
-      const refInput = screen.getByLabelText(/Reference/i);
-      fireEvent.change(refInput, { target: { value: 'OR-5544' } });
-
-      // Enter Description
-      const descInput = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput, { target: { value: 'Annual co-op registration fee' } });
-
-      // Submit
-      fireEvent.submit(screen.getByTestId('add-fund-form'));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('add-fund-form')).toBeNull();
-      });
-
-      // Liquid pool should be 132,000 - 3,500 = 128,500
-      expect(await screen.findByText('₱128,500.00')).toBeDefined();
-
-      // Shows as outflow in ledger
-      expect(screen.getByText('Annual co-op registration fee')).toBeDefined();
-      expect(screen.getByText('-₱3,500.00')).toBeDefined();
-      expect(screen.getByText('OR-5544')).toBeDefined();
+      expect(screen.queryByRole('button', { name: /Deposit/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Expense/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Adjustment/i })).toBeNull();
     });
 
     it('cancels modal when Cancel button is clicked', async () => {
@@ -380,118 +350,23 @@ describe('Funds Management Feature', () => {
       });
     });
 
-    it('records an external capital deposit and an adjustment', async () => {
+    it('records an interest payment for an active loan', async () => {
       renderFundsPage(mockTreasurer);
 
       expect(await screen.findByText('₱132,000.00')).toBeDefined();
 
-      // 1. Record External Deposit
       const recordBtn = screen.getByTestId('record-fund-entry-button');
       fireEvent.click(recordBtn);
 
-      const depositTypeBtn = screen.getByRole('button', { name: /Deposit/i });
-      fireEvent.click(depositTypeBtn);
-
-      const amountInput = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput, { target: { value: '50000' } });
-
-      const descInput = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput, { target: { value: 'Grants & seed donation' } });
+      fireEvent.click(screen.getByTestId('payment-option-interest'));
+      const amountInput = screen.getByLabelText(/Amount/i) as HTMLInputElement;
+      expect(Number(amountInput.value)).toBeGreaterThan(0);
 
       fireEvent.submit(screen.getByTestId('add-fund-form'));
 
       await waitFor(() => {
         expect(screen.queryByTestId('add-fund-form')).toBeNull();
       });
-
-      // Net liquid pool becomes 132,000 + 50,000 = 182,000
-      expect(await screen.findByText('₱182,000.00')).toBeDefined();
-      expect(screen.getByText('Grants & seed donation')).toBeDefined();
-      expect(screen.getByText('+₱50,000.00')).toBeDefined();
-
-      // 2. Record Outflow Adjustment
-      fireEvent.click(recordBtn);
-      const adjTypeBtn = screen.getByRole('button', { name: /Adjustment/i });
-      fireEvent.click(adjTypeBtn);
-
-      // Select Outflow radio
-      const outflowRadio = screen.getByLabelText(/Outflow \(-/i);
-      fireEvent.click(outflowRadio);
-
-      const amountInput2 = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput2, { target: { value: '2000' } });
-
-      const descInput2 = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput2, { target: { value: 'Bank reconciliation discrepancy' } });
-
-      fireEvent.submit(screen.getByTestId('add-fund-form'));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('add-fund-form')).toBeNull();
-      });
-
-      // 182,000 - 2,000 = 180,000
-      expect(await screen.findByText('₱180,000.00')).toBeDefined();
-      expect(screen.getByText('Bank reconciliation discrepancy')).toBeDefined();
-      expect(screen.getByText('-₱2,000.00')).toBeDefined();
-    });
-
-    it('does not assign memberId or memberName when recording an expense or deposit', async () => {
-      renderFundsPage(mockTreasurer);
-
-      await screen.findByText('₱132,000.00');
-
-      // 1. Record an expense
-      const recordBtn = screen.getByTestId('record-fund-entry-button');
-      fireEvent.click(recordBtn);
-
-      const expenseTypeBtn = screen.getByRole('button', { name: /Expense/i });
-      fireEvent.click(expenseTypeBtn);
-
-      const amountInput = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput, { target: { value: '1500' } });
-
-      const descInput = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput, { target: { value: 'Office stationery' } });
-
-      fireEvent.submit(screen.getByTestId('add-fund-form'));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('add-fund-form')).toBeNull();
-      });
-
-      // 2. Record a deposit
-      fireEvent.click(recordBtn);
-
-      const depositTypeBtn = screen.getByRole('button', { name: /Deposit/i });
-      fireEvent.click(depositTypeBtn);
-
-      const amountInput2 = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput2, { target: { value: '25000' } });
-
-      const descInput2 = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput2, { target: { value: 'Community grant donation' } });
-
-      fireEvent.submit(screen.getByTestId('add-fund-form'));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('add-fund-form')).toBeNull();
-      });
-
-      // Verify entries in adapter have memberId and memberName undefined
-      const entries = await adapter.getFundEntries();
-      const expenseEntry = entries.find((e) => e.description === 'Office stationery');
-      const depositEntry = entries.find((e) => e.description === 'Community grant donation');
-
-      expect(expenseEntry).toBeDefined();
-      expect(expenseEntry?.type).toBe('expense');
-      expect(expenseEntry?.memberId).toBeUndefined();
-      expect(expenseEntry?.memberName).toBeUndefined();
-
-      expect(depositEntry).toBeDefined();
-      expect(depositEntry?.type).toBe('deposit');
-      expect(depositEntry?.memberId).toBeUndefined();
-      expect(depositEntry?.memberName).toBeUndefined();
     });
 
     it('toggles table date sort order between desc and asc', async () => {
