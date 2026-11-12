@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
           if (client) {
             const email = cleanUsername.includes('@')
               ? cleanUsername
-              : `${cleanUsername}@huluga.local`;
+              : `${cleanUsername}@huluga.app`;
 
             const { data, error } = await client.auth.signInWithPassword({
               email,
@@ -229,7 +229,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         }
         const email = cleanUsername.includes('@')
           ? cleanUsername
-          : `${cleanUsername}@huluga.local`;
+          : `${cleanUsername}@huluga.app`;
 
         const { data, error } = await client.auth.signUp({
           email,
