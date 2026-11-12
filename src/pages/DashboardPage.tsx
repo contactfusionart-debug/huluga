@@ -10,6 +10,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { calculateLoanSummary } from '../services/interestEngine';
+import { getPaymentAlerts } from '../utils/paymentAlerts';
+import { PaymentAlertsBanner } from '../components/loans/PaymentAlertsBanner';
 import {
   formatCurrency,
   formatDate,
@@ -72,6 +74,7 @@ export const DashboardPage: React.FC = () => {
       pendingAppsCount: pendingApps.length,
       pendingAppsQueue: pendingApps.slice(0, 5),
       recentLedgerEntries,
+      paymentAlerts: getPaymentAlerts(loans),
     };
   }, [fundEntries, loans, applications]);
 
@@ -185,6 +188,13 @@ export const DashboardPage: React.FC = () => {
               </Button>
             </Link>
           </div>
+
+          {/* Payment Alerts & Due Reminders */}
+          <PaymentAlertsBanner
+            alerts={treasurerMetrics.paymentAlerts}
+            mode="treasurer"
+            currency={currency}
+          />
 
           {/* Two-Column Cockpit Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

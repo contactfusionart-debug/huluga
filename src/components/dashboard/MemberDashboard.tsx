@@ -13,6 +13,8 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
+import { getPaymentAlerts } from '../../utils/paymentAlerts';
+import { PaymentAlertsBanner } from '../loans/PaymentAlertsBanner';
 import {
   formatCurrency,
   formatDate,
@@ -116,6 +118,8 @@ export const MemberDashboard: React.FC = () => {
       { fundEntries, settings }
     );
 
+    const memberAlerts = getPaymentAlerts(memberLoans.map((m) => m.loan));
+
     return {
       memberTransactions,
       paidShareCapital,
@@ -127,6 +131,7 @@ export const MemberDashboard: React.FC = () => {
       memberApps,
       pendingAppsCount,
       creditSummary,
+      memberAlerts,
     };
   }, [fundEntries, loans, applications, memberProfile, shareValue, settings]);
 
@@ -256,6 +261,9 @@ export const MemberDashboard: React.FC = () => {
           data-testid="member-stat-applications"
         />
       </div>
+
+      {/* Payment Alerts & Due Reminders */}
+      <PaymentAlertsBanner alerts={metrics.memberAlerts} mode="member" currency={currency} />
 
       {/* Loans & Applications + Transaction History */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
