@@ -38,6 +38,7 @@ export const DemoUserSwitcher: React.FC<DemoUserSwitcherProps> = ({
             type="button"
             onClick={() => switchDemoUser(user.id)}
             aria-pressed={isActive}
+            aria-label={`Switch to ${user.fullName} (${user.role})`}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition-all duration-150 ${
               isActive
                 ? isTreasurer

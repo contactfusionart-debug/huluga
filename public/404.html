@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Huluga — Redirecting...</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script>
+      // Single Page Application routing for GitHub Pages
+      // Converts deep non-hash paths into hash fragment routing
+      (function() {
+        var path = window.location.pathname;
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
+
+        // Extract segments to handle repo project path on GitHub Pages
+        var segments = path.split('/').filter(Boolean);
+        var repoPrefix = '';
+        var routePath = '';
+
+        if (window.location.hostname.endsWith('github.io') && segments.length > 0) {
+          // Project site: /<repo-name>/...
+          repoPrefix = '/' + segments[0];
+          routePath = '/' + segments.slice(1).join('/');
+        } else {
+          routePath = path;
+        }
+
+        // Clean up target hash route
+        var cleanRoute = routePath.replace(/^\/+/, '');
+        var targetHash = cleanRoute ? '#/' + cleanRoute : '#/';
+
+        // Redirect to single-page app root with preserved query & hash
+        var redirectUrl = window.location.origin + repoPrefix + '/' + search + targetHash;
+        window.location.replace(redirectUrl);
+      })();
+    </script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: #fafafa;
+        color: #18181b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 1.5rem;
+        box-sizing: border-box;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #e4e4e7;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        max-width: 24rem;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .badge {
+        display: inline-block;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        margin-bottom: 1rem;
+        border: 1px solid #a7f3d0;
+      }
+      h1 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+      }
+      p {
+        font-size: 0.875rem;
+        color: #71717a;
+        margin: 0 0 1.25rem;
+        line-height: 1.5;
+      }
+      a {
+        display: inline-block;
+        background: #059669;
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        transition: background 0.15s ease-in-out;
+      }
+      a:hover {
+        background: #047857;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">Huluga Community Fund</div>
+      <h1>Redirecting to Application</h1>
+      <p>Redirecting you to the application view. If not redirected automatically, click the button below.</p>
+      <a href="./">Return to Dashboard</a>
+    </div>
+  </body>
+</html>

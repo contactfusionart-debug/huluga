@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
-import { ToastContainer } from '../common/ToastContainer';
 import { cn } from '../../utils/cn';
 
 export interface AppShellProps {
@@ -40,9 +39,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
 
   return (
     <div className={cn('min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100', className)}>
-      {/* Global Toast Container */}
-      <ToastContainer />
-
       {/* Top Navbar */}
       <Navbar
         isMobileMenuOpen={isMobileMenuOpen}

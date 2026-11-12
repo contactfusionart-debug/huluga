@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, X, ShieldCheck, User } from 'lucide-react';
+import { Menu, X, ShieldCheck, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { DemoUserSwitcher } from '../common/DemoUserSwitcher';
 import { Badge } from '../common/Badge';
@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isMobileMenuOpen = false,
   className,
 }) => {
-  const { currentUser, isTreasurer } = useAuth();
+  const { currentUser, isTreasurer, logout } = useAuth();
 
   return (
     <header
@@ -96,6 +96,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </Badge>
+
+              <button
+                type="button"
+                onClick={logout}
+                aria-label="Log out"
+                title="Log out"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-rose-600 hover:bg-rose-50 dark:text-zinc-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </div>
           ) : (
             <div className="text-xs text-zinc-500">Not authenticated</div>

@@ -8,6 +8,7 @@ import {
   Users,
   Settings,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { DataContext } from '../../context/DataContext';
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
       </div>
 
       {/* Footer / Status */}
-      <div className="p-3 border-t border-zinc-100 dark:border-zinc-800/80 shrink-0">
+      <div className="p-3 border-t border-zinc-100 dark:border-zinc-800/80 shrink-0 space-y-2">
         <div className="flex items-center justify-between px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
@@ -162,6 +163,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
           </span>
           <span className="font-mono text-[11px] tabular-nums">v1.0</span>
         </div>
+        {auth?.isAuthenticated && (
+          <button
+            type="button"
+            onClick={() => {
+              auth.logout();
+              onClose?.();
+            }}
+            aria-label="Log out session"
+            className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-rose-600 hover:bg-rose-50 dark:text-zinc-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 transition-colors border border-zinc-200/80 dark:border-zinc-800 cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Log out</span>
+          </button>
+        )}
       </div>
     </aside>
   );
