@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { Wallet, PiggyBank, HandCoins, Receipt } from 'lucide-react';
 import { DataContext } from '../../context/DataContext';
 import { StatCard } from '../common/StatCard';
+import { ProgressBar } from '../common/ProgressBar';
 import {
   formatCurrency,
   DEFAULT_SHARE_VALUE,
@@ -67,40 +68,54 @@ export const FundSummaryStats: React.FC<FundSummaryStatsProps> = ({
   );
   const totalRepayments = repaymentsFromFunds > 0 ? repaymentsFromFunds : repaymentsFromLoans;
 
+  const totalPoolCapital = Math.max(netLiquidPool + activeCapitalLoaned, memberCapitalContributed, 1);
+
   return (
-    <div
-      className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4', className)}
-      data-testid="fund-summary-stats"
-    >
-      <StatCard
-        title="Net Liquid Fund Pool"
-        value={formatCurrency(netLiquidPool)}
-        subtitle="Available cash to lend"
-        change={netLiquidPool >= 0 ? 'Healthy Liquidity' : 'Pool Deficit'}
-        changeType={netLiquidPool >= 0 ? 'positive' : 'negative'}
-        icon={<Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-      />
+    <div className={cn('space-y-4', className)} data-testid="fund-summary-stats">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Net Liquid Fund Pool"
+          value={formatCurrency(netLiquidPool, currency)}
+          subtitle="Available cash to lend"
+          change={netLiquidPool >= 0 ? 'Healthy Liquidity' : 'Pool Deficit'}
+          changeType={netLiquidPool >= 0 ? 'positive' : 'negative'}
+          icon={<Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+        />
 
-      <StatCard
-        title="Member Capital Contributed"
-        value={formatCurrency(memberCapitalContributed, currency)}
-        subtitle={`${formatShares(totalShares)} (${formatCurrency(shareValue, currency)}/share)`}
-        icon={<PiggyBank className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-      />
+        <StatCard
+          title="Member Capital Contributed"
+          value={formatCurrency(memberCapitalContributed, currency)}
+          subtitle={`${formatShares(totalShares)} (${formatCurrency(shareValue, currency)}/share)`}
+          icon={<PiggyBank className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+        />
 
-      <StatCard
-        title="Active Capital Loaned"
-        value={formatCurrency(activeCapitalLoaned)}
-        subtitle={`${activeLoans.length} active loan${activeLoans.length === 1 ? '' : 's'}`}
-        icon={<HandCoins className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-      />
+        <StatCard
+          title="Active Capital Loaned"
+          value={formatCurrency(activeCapitalLoaned, currency)}
+          subtitle={`${activeLoans.length} active loan${activeLoans.length === 1 ? '' : 's'}`}
+          icon={<HandCoins className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+        />
 
-      <StatCard
-        title="Total Repayments Collected"
-        value={formatCurrency(totalRepayments)}
-        subtitle="Principal + interest collected"
-        icon={<Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-      />
+        <StatCard
+          title="Total Repayments Collected"
+          value={formatCurrency(totalRepayments, currency)}
+          subtitle="Principal + interest collected"
+          icon={<Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+        />
+      </div>
+
+      {/* Fund Utilization Progress Bar */}
+      <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-subtle">
+        <ProgressBar
+          label="Fund Pool Utilization (Active Loans vs Total Pool)"
+          value={activeCapitalLoaned}
+          max={totalPoolCapital}
+          valueLabel={`${formatCurrency(activeCapitalLoaned, currency)} deployed`}
+          showPercentage
+          variant="indigo"
+          size="md"
+        />
+      </div>
     </div>
   );
 };

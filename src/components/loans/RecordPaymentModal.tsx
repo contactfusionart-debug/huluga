@@ -11,6 +11,7 @@ import {
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
+import { ProgressBar } from '../common/ProgressBar';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -42,6 +43,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   const [paymentDate, setPaymentDate] = useState<string>(() =>
     toISODateString(asOfDate || new Date())
   );
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'GCash' | 'Bank Transfer' | 'Other'>('Cash');
   const [referenceNo, setReferenceNo] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -52,6 +54,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     if (isOpen && loan) {
       setAmount('');
       setPaymentDate(toISODateString(asOfDate || new Date()));
+      setPaymentMethod('Cash');
       setReferenceNo('');
       setNotes('');
       setErrors({});
@@ -62,7 +65,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   // Compute live loan financial summary based on effective payment date
   const summary = useMemo(() => {
     if (!loan) return null;
-    const dateObj = paymentDate ? new Date(paymentDate) : (asOfDate || new Date());
+    const dateObj = paymentDate ? new Date(`${paymentDate}T00:00:00`) : (asOfDate || new Date());
     return calculateLoanSummary(loan, dateObj);
   }, [loan, paymentDate, asOfDate]);
 
@@ -126,6 +129,10 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      const combinedNotes = notes.trim()
+        ? `[${paymentMethod}] ${notes.trim()}`
+        : `[${paymentMethod}]`;
+
       const paymentPayload: Omit<LoanPayment, 'id'> = {
         loanId: loan.id,
         borrowerId: loan.borrowerId,
@@ -134,7 +141,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
         principalPortion: allocation.principalPortion,
         paymentDate: paymentDate || toISODateString(new Date()),
         referenceNo: referenceNo.trim() || undefined,
-        notes: notes.trim() || undefined,
+        notes: combinedNotes,
         recordedBy:
           currentUser?.fullName || currentUser?.username || 'Maria Santos (Treasurer)',
       };
@@ -231,6 +238,48 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 Principal + Unpaid Int.
               </span>
             </div>
+          </div>
+
+          {/* Live Principal Repayment Progress Bar */}
+          <div className="pt-2 border-t border-zinc-200/70 dark:border-zinc-800">
+            <ProgressBar
+              label="Principal Repayment Progress"
+              value={loan.principalPaid || 0}
+              projectedValue={(loan.principalPaid || 0) + allocation.principalPortion}
+              max={loan.principalAmount}
+              valueLabel={`${formatCurrency((loan.principalPaid || 0) + allocation.principalPortion)} / ${formatCurrency(loan.principalAmount)}`}
+              showPercentage
+              variant="emerald"
+              size="md"
+            />
+          </div>
+        </div>
+
+        {/* Payment Method Selector */}
+        <div className="space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block">
+            Payment Method
+          </span>
+          <div className="grid grid-cols-4 gap-2">
+            {(['Cash', 'GCash', 'Bank Transfer', 'Other'] as const).map((method) => {
+              const isSelected = paymentMethod === method;
+              return (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setPaymentMethod(method)}
+                  data-testid={`payment-method-${method.toLowerCase().replace(/\s+/g, '-')}`}
+                  className={cn(
+                    'py-1.5 px-2 text-xs font-medium rounded-lg border transition-colors text-center',
+                    isSelected
+                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                  )}
+                >
+                  {method}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -345,6 +394,38 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 </Badge>
               )}
             </div>
+
+            {/* Visual Split Bar: Interest vs Principal */}
+            {parsedAmount > 0 && allocation.excessAmount === 0 && (
+              <div className="space-y-1">
+                <div className="h-2 w-full rounded-full overflow-hidden flex bg-zinc-200 dark:bg-zinc-800">
+                  {allocation.interestPortion > 0 && (
+                    <div
+                      className="h-full bg-amber-500 transition-all duration-300"
+                      style={{ width: `${Math.round((allocation.interestPortion / parsedAmount) * 100)}%` }}
+                      title={`Interest: ${formatCurrency(allocation.interestPortion)}`}
+                    />
+                  )}
+                  {allocation.principalPortion > 0 && (
+                    <div
+                      className="h-full bg-emerald-600 transition-all duration-300"
+                      style={{ width: `${Math.round((allocation.principalPortion / parsedAmount) * 100)}%` }}
+                      title={`Principal: ${formatCurrency(allocation.principalPortion)}`}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                    Interest ({Math.round((allocation.interestPortion / parsedAmount) * 100)}%)
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
+                    Principal ({Math.round((allocation.principalPortion / parsedAmount) * 100)}%)
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               <div className="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">

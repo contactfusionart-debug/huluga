@@ -21,6 +21,7 @@ import {
   DEFAULT_SHARE_VALUE,
 } from '../utils/formatters';
 import { StatCard } from '../components/common/StatCard';
+import { ProgressBar } from '../components/common/ProgressBar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -194,6 +195,19 @@ export const DividendsPage: React.FC = () => {
           value={formatCurrency(dividendSummary.dividendPerShare, currency)}
           subtitle={`Across ${formatShares(dividendSummary.totalShares)}`}
           icon={<PieChart className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+        />
+      </div>
+
+      {/* Revenue Distribution Progress Bar */}
+      <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-subtle">
+        <ProgressBar
+          label="Shareholder Net Revenue Retention (after Fees)"
+          value={dividendSummary.netDistributableRevenue}
+          max={Math.max(dividendSummary.grossInterestRevenue, 1)}
+          valueLabel={`${formatCurrency(dividendSummary.netDistributableRevenue, currency)} / ${formatCurrency(dividendSummary.grossInterestRevenue, currency)}`}
+          showPercentage
+          variant="emerald"
+          size="md"
         />
       </div>
 

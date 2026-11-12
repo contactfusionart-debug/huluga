@@ -3,6 +3,7 @@ import { Banknote, History, Calendar, Clock } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
+import { ProgressBar } from '../common/ProgressBar';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { formatCurrency, formatDate, formatPercent } from '../../utils/formatters';
 import type { Loan } from '../../types';
@@ -30,14 +31,6 @@ export const LoanCard: React.FC<LoanCardProps> = ({
   }, [loan, asOfDate]);
 
   const isPaid = loan.status === 'paid' || summary.isFullyPaid;
-
-  // Percentage of principal paid down
-  const percentPaid = useMemo(() => {
-    if (isPaid) return 100;
-    if (!loan.principalAmount || loan.principalAmount <= 0) return 0;
-    const paid = loan.principalPaid || 0;
-    return Math.min(100, Math.max(0, Math.round((paid / loan.principalAmount) * 100)));
-  }, [loan.principalAmount, loan.principalPaid, isPaid]);
 
   return (
     <Card
@@ -90,27 +83,27 @@ export const LoanCard: React.FC<LoanCardProps> = ({
           </div>
         </div>
 
-        {/* Principal Repayment Progress Bar */}
-        <div className="py-3 border-b border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-500 dark:text-zinc-400 font-medium">Principal Paid</span>
-            <span className="font-mono tabular-nums font-semibold text-zinc-800 dark:text-zinc-200">
-              {formatCurrency(loan.principalPaid || 0)} / {formatCurrency(loan.principalAmount)} ({percentPaid}%)
-            </span>
-          </div>
-          <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all duration-500',
-                isPaid ? 'bg-emerald-500' : 'bg-emerald-600'
-              )}
-              style={{ width: `${percentPaid}%` }}
-              role="progressbar"
-              aria-valuenow={percentPaid}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            />
-          </div>
+        {/* Principal & Interest Progress Bars */}
+        <div className="py-3 border-b border-zinc-100 dark:border-zinc-800/80 space-y-2.5">
+          <ProgressBar
+            label="Principal Paid"
+            value={isPaid ? loan.principalAmount : loan.principalPaid || 0}
+            max={loan.principalAmount}
+            valueLabel={`${formatCurrency(loan.principalPaid || 0)} / ${formatCurrency(loan.principalAmount)}`}
+            showPercentage
+            variant="emerald"
+            size="md"
+          />
+
+          <ProgressBar
+            label="Accrued Interest Settled"
+            value={summary.totalInterestPaid}
+            max={Math.max(summary.totalInterestIncurred, summary.totalInterestPaid, 1)}
+            valueLabel={`${formatCurrency(summary.totalInterestPaid)} / ${formatCurrency(summary.totalInterestIncurred)}`}
+            showPercentage
+            variant={summary.unpaidInterest === 0 ? 'emerald' : 'amber'}
+            size="sm"
+          />
         </div>
 
         {/* 6-Cell Financial Snapshot Grid */}
