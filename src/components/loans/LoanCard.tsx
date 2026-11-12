@@ -39,7 +39,7 @@ export const LoanCard: React.FC<LoanCardProps> = ({
     <Card
       data-testid={`loan-card-${loan.id}`}
       className={cn(
-        'flex flex-col justify-between transition-shadow hover:shadow-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900',
+        'flex flex-col justify-between p-5 sm:p-6 transition-shadow hover:shadow-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900',
         isPaid && 'bg-zinc-50/50 dark:bg-zinc-900/60 border-zinc-200/80',
         className
       )}
