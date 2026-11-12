@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, AlertCircle, CheckCircle, XCircle, FileText, User } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle, XCircle, User } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
@@ -66,7 +66,7 @@ export const CoMakerConsentModal: React.FC<CoMakerConsentModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Co-Maker Endorsement Review"
-      maxWidth="max-w-lg"
+      size="md"
       footer={
         <div className="flex items-center justify-between w-full">
           {!isDeclining ? (

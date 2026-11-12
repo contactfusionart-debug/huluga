@@ -544,6 +544,7 @@ describe('Base UI Component Library', () => {
         addFundEntry: async () => ({} as any),
         createLoanApplication: async () => ({} as any),
         updateApplicationStatus: async () => ({} as any),
+        updateCoMakerStatus: async () => ({} as any),
         disburseLoan: async () => ({} as any),
         recordPayment: async () => ({} as any),
         getPayments: async () => [],

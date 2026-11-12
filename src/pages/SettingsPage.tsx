@@ -38,6 +38,9 @@ export const SettingsPage: React.FC = () => {
   );
   const [shareValue, setShareValue] = useState<number>(settings?.shareValue ?? 2000);
   const [memberLoanLimit, setMemberLoanLimit] = useState<number>(settings?.memberLoanLimit ?? 50000);
+  const [coMakerLoanThreshold, setCoMakerLoanThreshold] = useState<number>(
+    settings?.coMakerLoanThreshold ?? 20000
+  );
 
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -51,6 +54,7 @@ export const SettingsPage: React.FC = () => {
       setDefaultMonthlyInterestRate(settings.defaultMonthlyInterestRate);
       setShareValue(settings.shareValue ?? 2000);
       setMemberLoanLimit(settings.memberLoanLimit ?? 50000);
+      setCoMakerLoanThreshold(settings.coMakerLoanThreshold ?? 20000);
     }
   }, [settings]);
 
@@ -62,6 +66,7 @@ export const SettingsPage: React.FC = () => {
     const rate = Number(defaultMonthlyInterestRate);
     const sValue = Number(shareValue);
     const limit = Number(memberLoanLimit);
+    const coThreshold = Number(coMakerLoanThreshold);
 
     if (!cleanName) {
       showToast('Organization name cannot be empty.', 'error');
@@ -83,6 +88,11 @@ export const SettingsPage: React.FC = () => {
       return;
     }
 
+    if (isNaN(coThreshold) || coThreshold < 0) {
+      showToast('Co-maker loan threshold must be zero or a positive number.', 'error');
+      return;
+    }
+
     setIsSaving(true);
     try {
       await updateSettings({
@@ -91,6 +101,7 @@ export const SettingsPage: React.FC = () => {
         defaultMonthlyInterestRate: rate,
         shareValue: sValue,
         memberLoanLimit: limit,
+        coMakerLoanThreshold: coThreshold,
       });
       showToast('Organization settings updated successfully.', 'success');
     } catch (err: any) {
@@ -295,6 +306,30 @@ export const SettingsPage: React.FC = () => {
                     className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                     required
                   />
+                </div>
+
+                {/* High-Value Loan Co-Maker Threshold */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label
+                    htmlFor="coMakerLoanThreshold"
+                    className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+                  >
+                    High-Value Co-Maker Threshold ({currencySymbol})
+                  </label>
+                  <input
+                    id="coMakerLoanThreshold"
+                    type="number"
+                    step="1000"
+                    min="0"
+                    value={coMakerLoanThreshold}
+                    disabled={isSaving}
+                    onChange={(e) => setCoMakerLoanThreshold(parseFloat(e.target.value) || 0)}
+                    data-testid="input-co-maker-threshold"
+                    className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  />
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Loans at or above this amount require an eligible member guarantor before approval. Set to 0 to disable.
+                  </p>
                 </div>
               </div>
 

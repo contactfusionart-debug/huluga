@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calculator, Info, AlertCircle, FileText, Users, ShieldCheck } from 'lucide-react';
+import { Calculator, Info, AlertCircle, FileText, ShieldCheck } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
