@@ -277,7 +277,7 @@ describe('Funds Management Feature', () => {
       expect(await screen.findByText('Description is required')).toBeDefined();
     });
 
-    it('allows a treasurer to record a new member capital contribution, updating ledger and stats', async () => {
+    it('allows a treasurer to record a partial loan payment, updating ledger and stats', async () => {
       renderFundsPage(mockTreasurer);
 
       // Initial stats: Net Liquid = 132,000, Member Capital = 160,000
@@ -289,13 +289,12 @@ describe('Funds Management Feature', () => {
       fireEvent.click(recordBtn);
       expect(screen.getByTestId('add-fund-form')).toBeDefined();
 
-      // Select Member (Carlos Mendoza)
-      const memberSelect = screen.getByLabelText(/Contributing Member/i);
-      fireEvent.change(memberSelect, { target: { value: 'user-4' } });
+      // Select Partial Payment option
+      fireEvent.click(screen.getByTestId('payment-option-partial'));
 
-      // Enter Amount: 25,000
+      // Enter Amount: 5,000
       const amountInput = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput, { target: { value: '25000' } });
+      fireEvent.change(amountInput, { target: { value: '5000' } });
 
       // Enter Reference
       const refInput = screen.getByLabelText(/Reference/i);
@@ -303,7 +302,7 @@ describe('Funds Management Feature', () => {
 
       // Enter Description
       const descInput = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput, { target: { value: 'Carlos additional capital share' } });
+      fireEvent.change(descInput, { target: { value: 'Partial loan repayment' } });
 
       // Submit
       fireEvent.submit(screen.getByTestId('add-fund-form'));
@@ -314,14 +313,9 @@ describe('Funds Management Feature', () => {
       });
 
       // Updated stats:
-      // Net Liquid Pool: 132,000 + 25,000 = 157,000
-      // Member Capital: 160,000 + 25,000 = 185,000
-      expect(await screen.findByText('₱157,000.00')).toBeDefined();
-      expect(screen.getByText('₱185,000.00')).toBeDefined();
-
-      // Transaction shows in ledger table
-      expect(screen.getByText('Carlos additional capital share')).toBeDefined();
-      expect(screen.getByText('+₱25,000.00')).toBeDefined();
+      // Net Liquid Pool: 132,000 + 5,000 = 137,000
+      expect(await screen.findByText('₱137,000.00')).toBeDefined();
+      expect(screen.getByText('+₱5,000.00')).toBeDefined();
       expect(screen.getByText('GCASH-98765')).toBeDefined();
     });
 
@@ -517,32 +511,24 @@ describe('Funds Management Feature', () => {
       expect(dateHeader.textContent).toContain('↓');
     });
 
-    it('converts member contribution amount into shares (e.g. 6000 pesos = 3 shares at 2000/share)', async () => {
+    it('supports monthly interest and full payment quick options without share conversion', async () => {
       renderFundsPage(mockTreasurer);
 
       const recordBtn = await screen.findByTestId('record-fund-entry-button');
       fireEvent.click(recordBtn);
 
-      const amountInput = screen.getByLabelText(/Amount/i);
-      fireEvent.change(amountInput, { target: { value: '6000' } });
+      // Share conversion box is removed
+      expect(screen.queryByTestId('share-conversion-preview')).toBeNull();
 
-      const preview = screen.getByTestId('share-conversion-preview');
-      expect(preview.textContent).toBe('3 shares');
+      // Payment options are present
+      expect(screen.getByTestId('payment-option-interest')).toBeDefined();
+      expect(screen.getByTestId('payment-option-partial')).toBeDefined();
+      expect(screen.getByTestId('payment-option-full')).toBeDefined();
 
-      const descInput = screen.getByLabelText(/Description/i);
-      fireEvent.change(descInput, { target: { value: '3 shares purchase' } });
-
-      fireEvent.submit(screen.getByTestId('add-fund-form'));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('add-fund-form')).toBeNull();
-      });
-
-      const entries = await adapter.getFundEntries();
-      const entry = entries.find((e) => e.description === '3 shares purchase');
-      expect(entry).toBeDefined();
-      expect(entry?.amount).toBe(6000);
-      expect(entry?.sharesCount).toBe(3);
+      fireEvent.click(screen.getByTestId('payment-option-full'));
+      const amountInput = screen.getByLabelText(/Amount/i) as HTMLInputElement;
+      expect(Number(amountInput.value)).toBeGreaterThan(0);
+      expect(screen.getByTestId('loan-payment-allocation')).toBeDefined();
     });
   });
 });
