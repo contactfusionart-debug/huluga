@@ -58,6 +58,13 @@ export interface LoanApplication {
 
 export type LoanStatus = 'active' | 'paid' | 'defaulted';
 
+export type DisbursementMethod = 'cash' | 'e-wallet';
+
+export interface DisbursementOptions {
+  method: DisbursementMethod;
+  referenceNo?: string;
+}
+
 export interface Loan {
   id: string;
   applicationId?: string;

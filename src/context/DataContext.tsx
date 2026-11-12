@@ -59,7 +59,10 @@ export interface DataContextValue {
     status: ApplicationStatus,
     notes?: string
   ) => Promise<LoanApplication>;
-  disburseLoan: (applicationId: string) => Promise<Loan>;
+  disburseLoan: (
+    applicationId: string,
+    options?: import('../types').DisbursementOptions
+  ) => Promise<Loan>;
   recordPayment: (payment: Omit<LoanPayment, 'id'>) => Promise<LoanPayment>;
   getPayments: (loanId?: string) => Promise<LoanPayment[]>;
   updateSettings: (newSettings: Partial<AppSettings>) => Promise<AppSettings>;
@@ -287,12 +290,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({
   );
 
   const disburseLoan = useCallback(
-    async (applicationId: string): Promise<Loan> => {
+    async (
+      applicationId: string,
+      options?: import('../types').DisbursementOptions
+    ): Promise<Loan> => {
       setError(null);
       try {
         const recordedBy =
           currentUser?.fullName || currentUser?.username || 'Maria Santos (Treasurer)';
-        const result = await adapterRef.current.disburseLoan(applicationId, recordedBy);
+        const result = await adapterRef.current.disburseLoan(applicationId, recordedBy, options);
         await refreshData();
         return result;
       } catch (err: any) {

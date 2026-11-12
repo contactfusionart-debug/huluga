@@ -500,7 +500,17 @@ export class SupabaseAdapter implements DatabaseAdapter {
     return (data as DbLoan[]).map(mapLoanFromDb);
   }
 
-  async disburseLoan(applicationId: string, recordedBy: string): Promise<Loan> {
+  async disburseLoan(
+    applicationId: string,
+    recordedBy: string,
+    options?: { method: 'cash' | 'e-wallet'; referenceNo?: string }
+  ): Promise<Loan> {
+    const method = options?.method ?? 'cash';
+    const refNo = options?.referenceNo?.trim();
+    if (method === 'e-wallet' && !refNo) {
+      throw new Error('Reference number is required for E-Wallet disbursements.');
+    }
+
     const client = this.getClient();
 
     // 1. Fetch application
@@ -527,6 +537,10 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
     // 3. Create Loan
     const todayStr = new Date().toISOString().split('T')[0];
+    const methodLabel = method === 'e-wallet' ? 'E-Wallet' : 'Cash';
+    const noteSuffix =
+      method === 'e-wallet' ? ` [E-Wallet Ref: ${refNo}]` : ' [Cash]';
+
     const loanRow = {
       application_id: app.id,
       borrower_id: app.borrowerId,
@@ -537,7 +551,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
       status: 'active',
       principal_paid: 0,
       interest_paid: 0,
-      notes: app.purpose,
+      notes: `${app.purpose}${noteSuffix}`,
     };
 
     const { data: loanData, error: loanError } = await client
@@ -557,9 +571,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
       memberId: app.borrowerId,
       memberName: app.borrowerName,
       recordedBy,
-      description: `Loan disbursement: ${app.borrowerName} (${app.purpose})`,
+      description: `Loan disbursement (${methodLabel}): ${app.borrowerName} (${app.purpose})`,
       date: todayStr,
-      referenceNo: `DISB-${newLoan.id.slice(-4).toUpperCase()}`,
+      referenceNo: refNo || `DISB-${newLoan.id.slice(-4).toUpperCase()}`,
     });
 
     return newLoan;

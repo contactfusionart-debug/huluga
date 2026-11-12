@@ -7,6 +7,7 @@ import type {
   Loan,
   LoanPayment,
   AppSettings,
+  DisbursementOptions,
 } from '../types';
 
 export interface DatabaseAdapter {
@@ -31,7 +32,11 @@ export interface DatabaseAdapter {
 
   // Active & historical loans
   getLoans(): Promise<Loan[]>;
-  disburseLoan(applicationId: string, recordedBy: string): Promise<Loan>;
+  disburseLoan(
+    applicationId: string,
+    recordedBy: string,
+    options?: DisbursementOptions
+  ): Promise<Loan>;
 
   // Loan repayments
   getPayments(loanId?: string): Promise<LoanPayment[]>;

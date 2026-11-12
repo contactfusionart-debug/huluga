@@ -198,7 +198,17 @@ export class LocalStorageAdapter implements DatabaseAdapter {
     return data ? (JSON.parse(data) as Loan[]) : [];
   }
 
-  async disburseLoan(applicationId: string, recordedBy: string): Promise<Loan> {
+  async disburseLoan(
+    applicationId: string,
+    recordedBy: string,
+    options?: { method: 'cash' | 'e-wallet'; referenceNo?: string }
+  ): Promise<Loan> {
+    const method = options?.method ?? 'cash';
+    const refNo = options?.referenceNo?.trim();
+    if (method === 'e-wallet' && !refNo) {
+      throw new Error('Reference number is required for E-Wallet disbursements.');
+    }
+
     const apps = await this.getLoanApplications();
     const app = apps.find((a) => a.id === applicationId);
     if (!app) {
@@ -214,6 +224,10 @@ export class LocalStorageAdapter implements DatabaseAdapter {
     this.storage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const methodLabel = method === 'e-wallet' ? 'E-Wallet' : 'Cash';
+    const noteSuffix =
+      method === 'e-wallet' ? ` [E-Wallet Ref: ${refNo}]` : ' [Cash]';
+
     const newLoan: Loan = {
       id: `loan-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       applicationId: app.id,
@@ -225,7 +239,7 @@ export class LocalStorageAdapter implements DatabaseAdapter {
       status: 'active',
       principalPaid: 0,
       interestPaid: 0,
-      notes: app.purpose,
+      notes: `${app.purpose}${noteSuffix}`,
     };
 
     const loans = await this.getLoans();
@@ -240,9 +254,9 @@ export class LocalStorageAdapter implements DatabaseAdapter {
       memberId: app.borrowerId,
       memberName: app.borrowerName,
       recordedBy,
-      description: `Loan disbursement: ${app.borrowerName} (${app.purpose})`,
+      description: `Loan disbursement (${methodLabel}): ${app.borrowerName} (${app.purpose})`,
       date: todayStr,
-      referenceNo: `DISB-${newLoan.id.slice(-4).toUpperCase()}`,
+      referenceNo: refNo || `DISB-${newLoan.id.slice(-4).toUpperCase()}`,
     });
 
     return newLoan;

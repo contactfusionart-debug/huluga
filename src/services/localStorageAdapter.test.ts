@@ -202,6 +202,28 @@ describe('LocalStorageAdapter', () => {
       await expect(adapter.disburseLoan('non-existent-app', 'user-1')).rejects.toThrow();
     });
 
+    it('requires reference number for e-wallet disbursement and records it on fund entry', async () => {
+      const apps = await adapter.getLoanApplications();
+      const pendingApp = apps.find((a) => a.status === 'pending')!;
+
+      await expect(
+        adapter.disburseLoan(pendingApp.id, 'user-1', { method: 'e-wallet', referenceNo: '   ' })
+      ).rejects.toThrow('Reference number is required');
+
+      const loan = await adapter.disburseLoan(pendingApp.id, 'user-1', {
+        method: 'e-wallet',
+        referenceNo: 'GCASH-998877',
+      });
+      expect(loan.notes).toContain('[E-Wallet Ref: GCASH-998877]');
+
+      const funds = await adapter.getFundEntries();
+      const entry = funds.find(
+        (f) => f.type === 'loan_disbursement' && f.referenceNo === 'GCASH-998877'
+      );
+      expect(entry).toBeDefined();
+      expect(entry?.description).toContain('E-Wallet');
+    });
+
     it('throws error when updating status of non-existent application', async () => {
       await expect(adapter.updateApplicationStatus('non-existent-app', 'approved')).rejects.toThrow();
     });

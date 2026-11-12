@@ -9,6 +9,8 @@ import {
   PiggyBank,
   HandCoins,
   Wallet,
+  Banknote,
+  Smartphone,
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -18,7 +20,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
-import type { LoanApplication, ApplicationStatus } from '../../types';
+import type { LoanApplication, ApplicationStatus, DisbursementMethod } from '../../types';
 import { cn } from '../../utils/cn';
 
 export interface ApplicationReviewModalProps {
@@ -50,6 +52,8 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
   const { showToast } = useToast();
 
   const [reviewNotes, setReviewNotes] = useState<string>('');
+  const [disbursementMethod, setDisbursementMethod] = useState<DisbursementMethod>('cash');
+  const [disbursementRefNo, setDisbursementRefNo] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [activeAction, setActiveAction] = useState<'approve' | 'reject' | 'disburse' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -57,6 +61,8 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
   useEffect(() => {
     if (application && isOpen) {
       setReviewNotes(application.reviewNotes || '');
+      setDisbursementMethod('cash');
+      setDisbursementRefNo('');
       setIsSubmitting(false);
       setActiveAction(null);
       setActionError(null);
@@ -193,16 +199,29 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
       return;
     }
 
+    const trimmedRef = disbursementRefNo.trim();
+    if (disbursementMethod === 'e-wallet' && !trimmedRef) {
+      setActionError('Please enter the E-Wallet reference number before disbursing.');
+      return;
+    }
+
     setIsSubmitting(true);
     setActiveAction('disburse');
     setActionError(null);
 
     try {
-      await disburseLoan(application.id);
+      await disburseLoan(application.id, {
+        method: disbursementMethod,
+        referenceNo: trimmedRef || undefined,
+      });
+      const methodNote =
+        disbursementMethod === 'e-wallet'
+          ? `via E-Wallet (Ref: ${trimmedRef})`
+          : 'via Cash';
       showToast(
         `Loan of ${formatCurrency(
           application.requestedAmount
-        )} has been disbursed to ${application.borrowerName}. Active loan created and recorded in treasury.`,
+        )} has been disbursed ${methodNote} to ${application.borrowerName}. Active loan created and recorded in treasury.`,
         'success'
       );
       onSuccess?.();
@@ -454,6 +473,84 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Disbursement Method Selector (Treasurer only, before disbursement) */}
+        {isTreasurer && !isFinalized && (
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                Disbursement Method
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                Required when releasing funds
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => {
+                  setDisbursementMethod('cash');
+                  setActionError(null);
+                }}
+                data-testid="disbursement-method-cash"
+                className={cn(
+                  'flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+                  disbursementMethod === 'cash'
+                    ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                    : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                )}
+              >
+                <Banknote className="w-4 h-4" />
+                Cash
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => {
+                  setDisbursementMethod('e-wallet');
+                  setActionError(null);
+                }}
+                data-testid="disbursement-method-ewallet"
+                className={cn(
+                  'flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+                  disbursementMethod === 'e-wallet'
+                    ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                    : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                )}
+              >
+                <Smartphone className="w-4 h-4" />
+                E-Wallet
+              </button>
+            </div>
+
+            {disbursementMethod === 'e-wallet' && (
+              <div>
+                <label
+                  htmlFor="disbursement-ref-no"
+                  className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+                >
+                  E-Wallet Reference No. <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="disbursement-ref-no"
+                  type="text"
+                  placeholder="e.g. GCash Ref # 1234-5678-90"
+                  value={disbursementRefNo}
+                  onChange={(e) => {
+                    setDisbursementRefNo(e.target.value);
+                    setActionError(null);
+                  }}
+                  disabled={isSubmitting}
+                  data-testid="disbursement-reference-input"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-mono transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Review Notes Textarea */}
         <div>
