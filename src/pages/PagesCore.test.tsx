@@ -212,33 +212,15 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
       expect(screen.getByText('Ana Reyes')).toBeDefined();
     });
 
-    it('renders Member Personal Self-Service view with personal equity, active loans and loan CTA', async () => {
+    it('always focuses on Treasurer Executive Cockpit even when signed in as a member', async () => {
       renderWithProviders(<DashboardPage />, { initialUser: mockMemberJuan });
 
       await waitFor(() => {
-        expect(screen.getByTestId('member-dashboard')).toBeDefined();
+        expect(screen.getByTestId('treasurer-dashboard')).toBeDefined();
       });
 
-      expect(screen.getByRole('heading', { name: /welcome, juan dela cruz/i })).toBeDefined();
-      expect(screen.getByText('Member')).toBeDefined();
-
-      // Top 4 StatCards for Member
-      expect(screen.getByTestId('stat-my-equity')).toBeDefined();
-      expect(screen.getByTestId('stat-my-principal')).toBeDefined();
-      expect(screen.getByTestId('stat-my-interest')).toBeDefined();
-      expect(screen.getByTestId('stat-my-pending-apps')).toBeDefined();
-
-      // Callout Card
-      expect(screen.getByText(/need cash\? apply for a community loan/i)).toBeDefined();
-      expect(screen.getByTestId('cta-apply-loan')).toBeDefined();
-
-      // Member Two-column sections
-      expect(screen.getByText(/my active loans/i)).toBeDefined();
-      expect(screen.getByText(/my recent transactions/i)).toBeDefined();
-
-      // Juan has active loan-1 in mock data (₱20,000 principal)
-      expect(screen.getAllByText(/remaining principal/i).length).toBeGreaterThan(0);
-      expect(screen.getByText(/monthly 5% interest/i)).toBeDefined();
+      expect(screen.getByRole('heading', { name: /executive cockpit/i })).toBeDefined();
+      expect(screen.queryByTestId('member-dashboard')).toBeNull();
     });
   });
 
