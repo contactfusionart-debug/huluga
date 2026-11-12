@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Banknote, History, Calendar, Clock } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Banknote, History, Calendar, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
@@ -26,11 +26,14 @@ export const LoanCard: React.FC<LoanCardProps> = ({
   onViewLedger,
   className,
 }) => {
+  const [showDetails, setShowDetails] = useState(false);
+
   const summary = useMemo(() => {
     return calculateLoanSummary(loan, asOfDate || new Date());
   }, [loan, asOfDate]);
 
   const isPaid = loan.status === 'paid' || summary.isFullyPaid;
+  const advanceInterest = Math.max(0, summary.totalInterestPaid - summary.totalInterestIncurred);
 
   return (
     <Card
@@ -83,8 +86,49 @@ export const LoanCard: React.FC<LoanCardProps> = ({
           </div>
         </div>
 
+        {/* Key Figures: Amount Owed + Loan Terms */}
+        <div className="py-3.5 border-b border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-baseline justify-between gap-4">
+          <div>
+            <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">
+              Amount still owed
+            </span>
+            <span
+              className={cn(
+                'text-2xl font-bold font-mono tabular-nums tracking-tight',
+                isPaid
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-zinc-950 dark:text-zinc-50'
+              )}
+            >
+              {formatCurrency(summary.totalPayoffAmount)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-5 text-right">
+            <div>
+              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">
+                Original loan
+              </span>
+              <span className="text-sm font-semibold font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
+                {formatCurrency(loan.principalAmount)}
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">
+                Interest rate
+              </span>
+              <span className="text-sm font-semibold font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
+                {formatPercent(summary.monthlyInterestRate)}/mo
+              </span>
+              <span className="text-[11px] text-zinc-400 block font-mono tabular-nums">
+                {formatCurrency(summary.monthlyInterestAmount)}/mo
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Principal & Interest Progress Bars */}
-        <div className="py-3 border-b border-zinc-100 dark:border-zinc-800/80 space-y-2.5">
+        <div className="py-3.5 space-y-3">
           <ProgressBar
             label="Principal Paid"
             value={isPaid ? loan.principalAmount : loan.principalPaid || 0}
@@ -95,87 +139,92 @@ export const LoanCard: React.FC<LoanCardProps> = ({
             size="md"
           />
 
-          <ProgressBar
-            label="Accrued Interest Settled"
-            value={Math.min(summary.totalInterestPaid, summary.totalInterestIncurred)}
-            max={Math.max(summary.totalInterestIncurred, 1)}
-            valueLabel={
-              summary.totalInterestPaid > summary.totalInterestIncurred
-                ? `${formatCurrency(summary.totalInterestIncurred)} / ${formatCurrency(summary.totalInterestIncurred)} (+${formatCurrency(summary.totalInterestPaid - summary.totalInterestIncurred)} adv.)`
-                : `${formatCurrency(summary.totalInterestPaid)} / ${formatCurrency(summary.totalInterestIncurred)}`
-            }
-            showPercentage
-            variant={summary.unpaidInterest === 0 ? 'emerald' : 'amber'}
-            size="sm"
-          />
-        </div>
-
-        {/* 6-Cell Financial Snapshot Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 py-3 text-xs">
-          <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
-            <span className="text-[10px] uppercase font-medium text-zinc-400 tracking-wider block">
-              Original Principal
-            </span>
-            <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
-              {formatCurrency(loan.principalAmount)}
-            </span>
-          </div>
-
-          <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
-            <span className="text-[10px] uppercase font-medium text-zinc-400 tracking-wider block">
-              Monthly Rate
-            </span>
-            <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
-              {formatPercent(summary.monthlyInterestRate)}/mo
-            </span>
-            <span className="text-[10px] text-zinc-400 block font-mono tabular-nums">
-              {formatCurrency(summary.monthlyInterestAmount)}/mo
-            </span>
-          </div>
-
-          <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
-            <span className="text-[10px] uppercase font-medium text-zinc-400 tracking-wider block">
-              Months Elapsed
-            </span>
-            <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
-              {summary.monthsElapsed} mo{summary.monthsElapsed === 1 ? '' : 's'}
-            </span>
-          </div>
-
-          <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40">
-            <span className="text-[10px] uppercase font-medium text-amber-700 dark:text-amber-400 tracking-wider block">
-              Unpaid Accrued Interest
-            </span>
-            <span className="font-mono tabular-nums font-semibold text-amber-900 dark:text-amber-200 text-sm">
-              {formatCurrency(summary.unpaidInterest)}
-            </span>
-          </div>
-
-          <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
-            <span className="text-[10px] uppercase font-medium text-zinc-400 tracking-wider block">
-              Remaining Principal
-            </span>
-            <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
-              {formatCurrency(summary.remainingPrincipal)}
-            </span>
-          </div>
-
-          <div className="p-2 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
-            <span className="text-[10px] uppercase font-medium text-emerald-700 dark:text-emerald-400 tracking-wider block">
-              Total Payoff Balance
-            </span>
-            <span className="font-mono tabular-nums font-semibold text-emerald-900 dark:text-emerald-200 text-sm">
-              {formatCurrency(summary.totalPayoffAmount)}
-            </span>
+          <div className="space-y-1">
+            <ProgressBar
+              label="Interest Settled"
+              value={Math.min(summary.totalInterestPaid, summary.totalInterestIncurred)}
+              max={Math.max(summary.totalInterestIncurred, 1)}
+              valueLabel={`${formatCurrency(Math.min(summary.totalInterestPaid, summary.totalInterestIncurred))} / ${formatCurrency(summary.totalInterestIncurred)}`}
+              showPercentage
+              variant={summary.unpaidInterest === 0 ? 'emerald' : 'amber'}
+              size="sm"
+            />
+            <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
+              <span>
+                {summary.unpaidInterest > 0 ? (
+                  <span className="text-amber-700 dark:text-amber-400 font-medium font-mono tabular-nums">
+                    {formatCurrency(summary.unpaidInterest)} unpaid interest
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                    Interest up to date
+                  </span>
+                )}
+              </span>
+              {advanceInterest > 0 && (
+                <span className="text-emerald-700 dark:text-emerald-400 font-mono tabular-nums">
+                  +{formatCurrency(advanceInterest)} advance paid
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Loan Purpose / Notes */}
-        {loan.notes && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 italic line-clamp-2 pt-1 pb-2">
-            Purpose: &ldquo;{loan.notes}&rdquo;
-          </p>
-        )}
+        {/* Purpose & Expandable Breakdown */}
+        <div className="pt-1 pb-2 space-y-2">
+          {loan.notes && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
+              Purpose: <span className="italic">&ldquo;{loan.notes}&rdquo;</span>
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowDetails((prev) => !prev)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+          >
+            {showDetails ? (
+              <>
+                <ChevronUp className="w-3.5 h-3.5" />
+                Hide breakdown
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3.5 h-3.5" />
+                Show breakdown
+              </>
+            )}
+          </button>
+
+          {showDetails && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+              <div className="flex justify-between">
+                <span className="text-zinc-500 dark:text-zinc-400">Remaining principal</span>
+                <span className="font-mono tabular-nums font-medium text-zinc-900 dark:text-zinc-100">
+                  {formatCurrency(summary.remainingPrincipal)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 dark:text-zinc-400">Unpaid interest</span>
+                <span className="font-mono tabular-nums font-medium text-zinc-900 dark:text-zinc-100">
+                  {formatCurrency(summary.unpaidInterest)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 dark:text-zinc-400">Total interest billed</span>
+                <span className="font-mono tabular-nums font-medium text-zinc-900 dark:text-zinc-100">
+                  {formatCurrency(summary.totalInterestIncurred)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 dark:text-zinc-400">Total interest paid</span>
+                <span className="font-mono tabular-nums font-medium text-zinc-900 dark:text-zinc-100">
+                  {formatCurrency(summary.totalInterestPaid)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Footer */}
