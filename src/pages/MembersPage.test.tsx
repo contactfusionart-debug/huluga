@@ -417,4 +417,24 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       expect(await screen.findByText(/\+2 shares committed \(unpaid\)/i)).toBeDefined();
     });
   });
+
+  describe('Card / List View Switcher', () => {
+    it('switches between Card grid view and List table view', async () => {
+      renderMembersPage(mockTreasurer);
+
+      expect(await screen.findByTestId('members-grid')).toBeDefined();
+      expect(screen.queryByTestId('members-list')).toBeNull();
+
+      // Switch to List view
+      fireEvent.click(screen.getByTestId('view-mode-list'));
+      expect(await screen.findByTestId('members-list')).toBeDefined();
+      expect(screen.queryByTestId('members-grid')).toBeNull();
+      expect(screen.getByTestId('member-list-row-user-1')).toBeDefined();
+
+      // Switch back to Card view
+      fireEvent.click(screen.getByTestId('view-mode-card'));
+      expect(await screen.findByTestId('members-grid')).toBeDefined();
+      expect(screen.queryByTestId('members-list')).toBeNull();
+    });
+  });
 });

@@ -7,17 +7,36 @@ import {
   Wallet,
   ShieldCheck,
   X,
+  LayoutGrid,
+  List,
+  Eye,
+  Phone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { Button } from '../components/common/Button';
+import { Badge } from '../components/common/Badge';
 import { StatCard } from '../components/common/StatCard';
 import { EmptyState } from '../components/common/EmptyState';
-import { MemberCard } from '../components/members/MemberCard';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/common/Table';
+import { MemberCard, getInitials } from '../components/members/MemberCard';
 import { MemberDetailModal } from '../components/members/MemberDetailModal';
 import { EnrollMemberModal } from '../components/members/EnrollMemberModal';
 import { calculateLoanSummary } from '../services/interestEngine';
-import { formatCurrency } from '../utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatShares,
+  calculateShares,
+  DEFAULT_SHARE_VALUE,
+} from '../utils/formatters';
 import type { UserProfile } from '../types';
 import { cn } from '../utils/cn';
 
@@ -29,12 +48,58 @@ export type MemberRoleTab = 'all' | 'treasurer' | 'member';
 
 export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
   const { isTreasurer } = useAuth();
-  const { members, fundEntries, loans } = useData();
+  const { members, fundEntries, loans, settings } = useData();
+  const shareValue = settings?.shareValue || DEFAULT_SHARE_VALUE;
+  const currency = settings?.currencySymbol || '₱';
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleTab, setRoleTab] = useState<MemberRoleTab>('all');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
+
+  const memberMetricsMap = useMemo(() => {
+    const map = new Map<
+      string,
+      { contributed: number; shares: number; payoff: number; principal: number }
+    >();
+    members.forEach((member) => {
+      const matchingEntries = fundEntries.filter(
+        (e) =>
+          e.type === 'contribution' &&
+          (e.memberId === member.id ||
+            (e.memberName &&
+              member.fullName &&
+              e.memberName.trim().toLowerCase() === member.fullName.trim().toLowerCase()))
+      );
+      const contributed = matchingEntries.reduce((sum, e) => sum + (e.amount || 0), 0);
+      const shares = matchingEntries.reduce(
+        (sum, e) => sum + (e.sharesCount ?? calculateShares(e.amount || 0, shareValue)),
+        0
+      );
+
+      let principal = 0;
+      let payoff = 0;
+      loans
+        .filter(
+          (l) =>
+            l.borrowerId === member.id ||
+            (l.borrowerName &&
+              member.fullName &&
+              l.borrowerName.trim().toLowerCase() === member.fullName.trim().toLowerCase())
+        )
+        .forEach((l) => {
+          const summary = calculateLoanSummary(l);
+          if (l.status !== 'paid' && !summary.isFullyPaid) {
+            principal += summary.remainingPrincipal;
+            payoff += summary.totalPayoffAmount;
+          }
+        });
+
+      map.set(member.id, { contributed, shares, payoff, principal });
+    });
+    return map;
+  }, [members, fundEntries, loans, shareValue]);
 
   // Active Borrowers Set (members with active loans that are not fully paid)
   const activeBorrowerIds = useMemo(() => {
@@ -231,44 +296,198 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
           </button>
         </div>
 
-        {/* Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or @username..."
-            data-testid="search-members-input"
-            className="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950 dark:focus:ring-zinc-300 transition-colors"
-          />
-          {searchQuery && (
+        {/* Search Input + Card/List View Switcher */}
+        <div className="flex items-center gap-2 flex-1 sm:justify-end">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name or @username..."
+              data-testid="search-members-input"
+              className="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950 dark:focus:ring-zinc-300 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div
+            className="inline-flex items-center rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 shrink-0"
+            role="group"
+            aria-label="Switch member view mode"
+          >
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              onClick={() => setViewMode('card')}
+              aria-pressed={viewMode === 'card'}
+              aria-label="Card view"
+              data-testid="view-mode-card"
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors',
+                viewMode === 'card'
+                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+              )}
             >
-              <X className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Cards</span>
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              aria-pressed={viewMode === 'list'}
+              aria-label="List view"
+              data-testid="view-mode-list"
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors',
+                viewMode === 'list'
+                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+              )}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">List</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Member Cards Grid or Empty State */}
+      {/* Member Cards Grid / List View or Empty State */}
       {filteredMembers.length > 0 ? (
-        <div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-          data-testid="members-grid"
-        >
-          {filteredMembers.map((member) => (
-            <MemberCard
-              key={member.id}
-              member={member}
-              onInspect={(m) => setSelectedMember(m)}
-            />
-          ))}
-        </div>
+        viewMode === 'card' ? (
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+            data-testid="members-grid"
+          >
+            {filteredMembers.map((member) => (
+              <MemberCard
+                key={member.id}
+                member={member}
+                onInspect={(m) => setSelectedMember(m)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-subtle overflow-hidden"
+            data-testid="members-list"
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Role &amp; Status</TableHead>
+                  <TableHead className="text-right">Contributed Capital</TableHead>
+                  <TableHead className="text-right">Active Loan Balance</TableHead>
+                  <TableHead className="hidden md:table-cell">Joined</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((member) => {
+                  const metrics = memberMetricsMap.get(member.id) || {
+                    contributed: 0,
+                    shares: 0,
+                    payoff: 0,
+                    principal: 0,
+                  };
+                  const isSuspended = member.status === 'suspended';
+
+                  return (
+                    <TableRow key={member.id} data-testid={`member-list-row-${member.id}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5 min-w-[160px]">
+                          <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-200 shrink-0">
+                            {getInitials(member.fullName, member.username)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                              {member.fullName}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate flex items-center gap-1.5">
+                              <span>@{member.username}</span>
+                              {member.phoneNumber && (
+                                <span className="hidden sm:inline-flex items-center gap-0.5 text-zinc-400">
+                                  · <Phone className="w-3 h-3" /> {member.phoneNumber}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge
+                            variant={member.role === 'treasurer' ? 'indigo' : 'zinc'}
+                            size="sm"
+                            dot={member.role === 'treasurer'}
+                          >
+                            {member.role === 'treasurer' ? 'Treasurer' : 'Member'}
+                          </Badge>
+                          <Badge
+                            variant={isSuspended ? 'rose' : 'emerald'}
+                            size="sm"
+                            dot
+                          >
+                            {isSuspended ? 'Suspended' : 'Active'}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums whitespace-nowrap">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                          {formatCurrency(metrics.contributed, currency)}
+                        </div>
+                        <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                          {formatShares(metrics.shares)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums whitespace-nowrap">
+                        <div
+                          className={cn(
+                            'font-semibold',
+                            metrics.payoff > 0
+                              ? 'text-amber-700 dark:text-amber-400'
+                              : 'text-zinc-900 dark:text-zinc-100'
+                          )}
+                        >
+                          {formatCurrency(metrics.payoff, currency)}
+                        </div>
+                        {metrics.principal > 0 && (
+                          <div className="text-[11px] text-zinc-500">
+                            ({formatCurrency(metrics.principal, currency)} principal)
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-xs text-zinc-500 whitespace-nowrap">
+                        {formatDate(member.joinedDate)}
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedMember(member)}
+                          icon={<Eye className="w-3.5 h-3.5" />}
+                          data-testid={`inspect-member-list-btn-${member.id}`}
+                        >
+                          View Profile
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )
       ) : (
         <div data-testid="empty-search-state">
           <EmptyState
