@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -9,10 +9,14 @@ import {
   Settings,
   ShieldCheck,
   LogOut,
+  Award,
+  ChevronRight,
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { DataContext } from '../../context/DataContext';
 import { Badge } from '../common/Badge';
+import { CreditScoreModal } from '../common/CreditScoreModal';
+import { calculateCreditScore } from '../../utils/creditScore';
 import { cn } from '../../utils/cn';
 
 export interface SidebarProps {
@@ -58,6 +62,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
     }
     return location.pathname.startsWith(path);
   };
+
+  const [isCreditScoreModalOpen, setIsCreditScoreModalOpen] = useState(false);
+  const creditScore = useMemo(() => {
+    if (!auth?.currentUser) return null;
+    return calculateCreditScore(
+      auth.currentUser,
+      data?.loans ?? [],
+      data?.fundEntries ?? [],
+      []
+    );
+  }, [auth?.currentUser, data?.loans, data?.fundEntries]);
 
   return (
     <aside
@@ -132,6 +147,57 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
           </nav>
         </div>
 
+        {/* Compact Credit Score Card in Sidebar */}
+        {creditScore && (
+          <button
+            type="button"
+            onClick={() => setIsCreditScoreModalOpen(true)}
+            data-testid="sidebar-credit-score-btn"
+            className={cn(
+              'w-full text-left p-3 rounded-xl border transition-all cursor-pointer group select-none',
+              creditScore.tierBg,
+              creditScore.tierBorder,
+              'hover:shadow-xs'
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-white/80 dark:bg-zinc-800/80 shadow-2xs border border-zinc-200/50 dark:border-zinc-700/50">
+                  <Award className={cn('w-4 h-4', creditScore.tierColor)} />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase font-semibold text-zinc-500 dark:text-zinc-400 leading-none">
+                    Credit Score
+                  </div>
+                  <div className="text-base font-bold font-mono tracking-tight text-zinc-900 dark:text-zinc-100 flex items-baseline gap-1 mt-0.5">
+                    <span>{creditScore.score}</span>
+                    <span className="text-[10px] font-normal text-zinc-400 font-sans">pts</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    'text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border',
+                    creditScore.tierBg,
+                    creditScore.tierColor,
+                    creditScore.tierBorder
+                  )}
+                >
+                  {creditScore.tier}
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            <div className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between pt-1.5 border-t border-zinc-200/50 dark:border-zinc-700/50">
+              <span>Tap to view factors</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Details →</span>
+            </div>
+          </button>
+        )}
+
         {/* Role & Interest Rate Callout Card */}
         <div className="rounded-xl border border-zinc-200/90 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-3.5 space-y-2">
           <div className="flex items-center justify-between">
@@ -178,6 +244,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
           </button>
         )}
       </div>
+
+      {/* Credit Score Details Modal */}
+      <CreditScoreModal
+        isOpen={isCreditScoreModalOpen}
+        onClose={() => setIsCreditScoreModalOpen(false)}
+        creditScore={creditScore}
+        memberName={auth?.currentUser?.fullName}
+      />
     </aside>
   );
 };
