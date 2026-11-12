@@ -10,6 +10,7 @@ import {
   calculateShares,
   formatShares,
   formatCurrency,
+  formatPercent,
 } from '../../utils/formatters';
 import type { FundEntry, FundEntryType } from '../../types';
 import { cn } from '../../utils/cn';
@@ -32,9 +33,11 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
   const { showToast } = useToast();
 
   const shareValue = settings.shareValue || DEFAULT_SHARE_VALUE;
+  const monthlyRate = settings.defaultMonthlyInterestRate ?? 5.0;
   const currency = settings.currencySymbol || '₱';
 
   const [type, setType] = useState<FundEntryType>(defaultType);
+  const [contributionMode, setContributionMode] = useState<'capital' | 'committed_interest'>('capital');
   const [adjustmentDirection, setAdjustmentDirection] = useState<'inflow' | 'outflow'>('inflow');
   const [memberId, setMemberId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -44,12 +47,21 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const selectedMember = members.find((m) => m.id === memberId);
+  const memberCommittedShares = selectedMember?.committedShares || 0;
+  const memberCommittedCapital =
+    selectedMember?.committedCapital ?? Math.round(memberCommittedShares * shareValue * 100) / 100;
+  const memberMonthlyInterest =
+    Math.round(memberCommittedCapital * (monthlyRate / 100) * 100) / 100;
+
   // Reset form when modal opens or defaultType changes
   useEffect(() => {
     if (isOpen) {
+      const defaultMember = members.find((m) => m.role === 'member') || members[0];
       setType(defaultType);
+      setContributionMode('capital');
       setAdjustmentDirection('inflow');
-      setMemberId(members[0]?.id ?? '');
+      setMemberId(defaultMember?.id ?? '');
       setAmount('');
       setDate(toISODateString(new Date()));
       setReferenceNo('');
@@ -117,15 +129,21 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
 
       const selectedMember = members.find((m) => m.id === memberId);
       const memberName = selectedMember ? selectedMember.fullName : undefined;
+      const isCommittedInterest = type === 'contribution' && contributionMode === 'committed_interest';
 
       const newEntry: Omit<FundEntry, 'id'> = {
         type,
         amount: amountNum,
-        sharesCount: type === 'contribution' ? calculateShares(amountNum, shareValue) : undefined,
+        sharesCount:
+          type === 'contribution'
+            ? isCommittedInterest
+              ? 0
+              : calculateShares(amountNum, shareValue)
+            : undefined,
         direction,
         memberId: type === 'contribution' ? memberId : undefined,
         memberName: type === 'contribution' ? memberName : undefined,
-        recordedBy: currentUser?.fullName || currentUser?.username || 'Treasurer',
+        recordedBy: currentUser?.id || currentUser?.fullName || currentUser?.username || 'Treasurer',
         description: description.trim(),
         date: date || toISODateString(new Date()),
         referenceNo: referenceNo.trim() || undefined,
@@ -210,7 +228,12 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
               id="fund-member-select"
               value={memberId}
               onChange={(e) => {
-                setMemberId(e.target.value);
+                const nextId = e.target.value;
+                setMemberId(nextId);
+                const nextMember = members.find((m) => m.id === nextId);
+                if (!nextMember?.committedShares) {
+                  setContributionMode('capital');
+                }
                 if (errors.memberId) {
                   setErrors((prev) => {
                     const next = { ...prev };
@@ -229,12 +252,72 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
               <option value="">Select a member...</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.fullName} ({m.role})
+                  {m.fullName} ({m.role}
+                  {(m.committedShares || 0) > 0
+                    ? ` · ${formatShares(m.committedShares!)} committed`
+                    : ''}
+                  )
                 </option>
               ))}
             </select>
             {errors.memberId && (
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.memberId}</p>
+            )}
+
+            {memberCommittedShares > 0 && (
+              <div
+                data-testid="committed-shares-helper"
+                className="mt-2.5 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30 p-2.5 space-y-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
+                  <span className="font-medium text-amber-900 dark:text-amber-200">
+                    Committed: {formatShares(memberCommittedShares)} ({formatCurrency(memberCommittedCapital, currency)})
+                  </span>
+                  <span className="font-mono text-amber-700 dark:text-amber-300">
+                    {formatCurrency(memberMonthlyInterest, currency)}/mo @ {formatPercent(monthlyRate)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    data-testid="contribution-mode-capital"
+                    onClick={() => {
+                      setContributionMode('capital');
+                      setAmount(String(memberCommittedCapital));
+                      setDescription(
+                        `Share capital payment (${formatShares(memberCommittedShares)})`
+                      );
+                    }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors text-center',
+                      contributionMode === 'capital'
+                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                        : 'border-amber-200 bg-white text-zinc-700 hover:bg-amber-100/60 dark:border-amber-800 dark:bg-zinc-900 dark:text-zinc-300'
+                    )}
+                  >
+                    Pay Share Capital
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="contribution-mode-interest"
+                    onClick={() => {
+                      setContributionMode('committed_interest');
+                      setAmount(String(memberMonthlyInterest));
+                      setDescription(
+                        `Monthly interest on ${formatShares(memberCommittedShares)} committed`
+                      );
+                    }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors text-center',
+                      contributionMode === 'committed_interest'
+                        ? 'border-amber-600 bg-amber-600 text-white'
+                        : 'border-amber-200 bg-white text-zinc-700 hover:bg-amber-100/60 dark:border-amber-800 dark:bg-zinc-900 dark:text-zinc-300'
+                    )}
+                  >
+                    Pay Monthly Interest
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -276,10 +359,10 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label htmlFor="fund-amount-input" className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-              Amount (₱) <span className="text-rose-500">*</span>
+              Amount ({currency}) <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2 text-sm font-mono text-zinc-400 select-none">₱</span>
+              <span className="absolute left-3 top-2 text-sm font-mono text-zinc-400 select-none">{currency}</span>
               <input
                 id="fund-amount-input"
                 type="number"
@@ -342,7 +425,7 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
         </div>
 
         {/* Share Conversion Preview & Quick Share Buttons (for Contributions) */}
-        {type === 'contribution' && (
+        {type === 'contribution' && contributionMode === 'capital' && (
           <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-emerald-900 dark:text-emerald-200">
