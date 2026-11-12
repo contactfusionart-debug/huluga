@@ -5,6 +5,7 @@ import {
   Wallet,
   HandCoins,
   Users,
+  BarChart3,
   Settings,
   ShieldCheck,
   LogOut,
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { name: 'Shares', to: '/shares', icon: Wallet, treasurerOnly: true },
   { name: 'Loans', to: '/loans', icon: HandCoins, isPendingBadge: true, treasurerOnly: true },
   { name: 'Members', to: '/members', icon: Users, treasurerOnly: true },
+  { name: 'Analytics', to: '/analytics', icon: BarChart3, treasurerOnly: true },
   { name: 'Settings', to: '/settings', icon: Settings, treasurerNotice: true, treasurerOnly: true },
 ];
 

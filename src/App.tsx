@@ -17,6 +17,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { SharesPage } from './pages/SharesPage';
 import { LoansHubPage } from './pages/LoansHubPage';
 import { MembersPage } from './pages/MembersPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import type { UserProfile } from './types';
@@ -64,6 +65,7 @@ export function AppRoutes() {
           <Route path="/shares" element={<SharesPage />} />
           <Route path="/loans" element={<LoansHubPage />} />
           <Route path="/members" element={<MembersPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
           {/* Legacy routes redirect to their new tabbed locations */}
           <Route path="/funds" element={<Navigate to="/shares" replace />} />
           <Route path="/dividends" element={<Navigate to="/shares?tab=dividends" replace />} />
