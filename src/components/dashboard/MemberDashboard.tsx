@@ -7,13 +7,16 @@ import {
   KeyRound,
   Plus,
   History,
+  AlertTriangle,
+  BellRing,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
-import { getPaymentAlerts } from '../../utils/paymentAlerts';
+import { getPaymentAlerts, getLoanDueInfo } from '../../utils/paymentAlerts';
 import { PaymentAlertsBanner } from '../loans/PaymentAlertsBanner';
 import {
   formatCurrency,
@@ -285,13 +288,15 @@ export const MemberDashboard: React.FC = () => {
                 />
               ) : (
                 <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                  {metrics.memberLoans.map(({ loan, summary }) => (
+                  {metrics.memberLoans.map(({ loan, summary }) => {
+                    const dueInfo = getLoanDueInfo(loan);
+                    return (
                     <div
                       key={loan.id}
                       className="py-3 flex items-center justify-between gap-3 text-sm"
                     >
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">
                             {formatCurrency(loan.principalAmount, currency)}
                           </span>
@@ -304,9 +309,36 @@ export const MemberDashboard: React.FC = () => {
                           >
                             {loan.status === 'paid' || summary.isFullyPaid ? 'paid' : loan.status}
                           </Badge>
+                          {dueInfo && (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                                dueInfo.hasUnpaidInterest
+                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                  : dueInfo.daysUntilDue <= 7
+                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+                              )}
+                              data-testid={`member-loan-due-${loan.id}`}
+                            >
+                              {dueInfo.hasUnpaidInterest ? (
+                                <AlertTriangle className="w-3 h-3 shrink-0" />
+                              ) : dueInfo.daysUntilDue <= 7 ? (
+                                <BellRing className="w-3 h-3 shrink-0" />
+                              ) : (
+                                <Clock className="w-3 h-3 shrink-0" />
+                              )}
+                              <span>
+                                {dueInfo.hasUnpaidInterest
+                                  ? `Interest Due · ${dueInfo.dueCountdownLabel}`
+                                  : dueInfo.dueCountdownLabel}
+                              </span>
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-400">
                           Started {formatDate(loan.startDate)} · {loan.monthlyInterestRate}%/mo
+                          {dueInfo ? ` · Next due ${formatDate(dueInfo.nextDueDate)}` : ''}
                         </div>
                       </div>
 
@@ -319,7 +351,8 @@ export const MemberDashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -17,6 +17,25 @@ export interface PaymentAlert {
   message: string;
 }
 
+export interface LoanDueInfo {
+  loanId: string;
+  hasUnpaidInterest: boolean;
+  unpaidInterest: number;
+  monthlyInterestAmount: number;
+  nextDueDate: string; // YYYY-MM-DD
+  daysUntilDue: number;
+  dueCountdownLabel: string;
+}
+
+export interface MemberDueStatus {
+  hasActiveDue: boolean;
+  hasUnpaidInterest: boolean;
+  totalUnpaidInterest: number;
+  daysUntilDue: number;
+  nextDueDate: string;
+  dueCountdownLabel: string;
+}
+
 function parseISOParts(dateStr: string): { year: number; month: number; day: number } | null {
   const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return null;
@@ -46,7 +65,10 @@ function getNextDueDate(startDateStr: string, asOfDate: Date): Date {
     Math.min(anchorDay, lastDayThisMonth)
   );
 
-  if (dueThisMonth.getTime() >= today.getTime()) {
+  if (
+    dueThisMonth.getTime() >= today.getTime() &&
+    !(parsed && parsed.year === today.getFullYear() && parsed.month === today.getMonth() && parsed.day === today.getDate())
+  ) {
     return dueThisMonth;
   }
 
@@ -54,6 +76,63 @@ function getNextDueDate(startDateStr: string, asOfDate: Date): Date {
   const nextMonth = (today.getMonth() + 1) % 12;
   const lastDayNextMonth = new Date(nextMonthYear, nextMonth + 1, 0).getDate();
   return new Date(nextMonthYear, nextMonth, Math.min(anchorDay, lastDayNextMonth));
+}
+
+export function formatDueCountdown(daysUntilDue: number): string {
+  if (daysUntilDue <= 0) return 'Due today';
+  if (daysUntilDue === 1) return 'Due in 1 day';
+  return `Due in ${daysUntilDue} days`;
+}
+
+/**
+ * Computes due-date and countdown info for a single active loan.
+ */
+export function getLoanDueInfo(loan: Loan, asOfDate: Date = new Date()): LoanDueInfo | null {
+  if (loan.status !== 'active') return null;
+  const summary = calculateLoanSummary(loan, asOfDate);
+  if (summary.isFullyPaid || summary.remainingPrincipal <= 0) return null;
+
+  const today = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate());
+  const nextDue = getNextDueDate(loan.startDate, asOfDate);
+  const daysUntilDue = Math.max(
+    0,
+    Math.round((nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  return {
+    loanId: loan.id,
+    hasUnpaidInterest: summary.unpaidInterest > 0,
+    unpaidInterest: summary.unpaidInterest,
+    monthlyInterestAmount: summary.monthlyInterestAmount,
+    nextDueDate: toISODate(nextDue),
+    daysUntilDue,
+    dueCountdownLabel: formatDueCountdown(daysUntilDue),
+  };
+}
+
+/**
+ * Aggregates active loan due status for a member across all their active loans.
+ */
+export function getMemberDueStatus(loans: Loan[], asOfDate: Date = new Date()): MemberDueStatus | null {
+  const infos = loans
+    .map((l) => getLoanDueInfo(l, asOfDate))
+    .filter((info): info is LoanDueInfo => info !== null);
+
+  if (infos.length === 0) return null;
+
+  infos.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+  const soonest = infos[0];
+  const totalUnpaidInterest =
+    Math.round(infos.reduce((sum, i) => sum + i.unpaidInterest, 0) * 100) / 100;
+
+  return {
+    hasActiveDue: totalUnpaidInterest > 0 || soonest.daysUntilDue <= 7,
+    hasUnpaidInterest: totalUnpaidInterest > 0,
+    totalUnpaidInterest,
+    daysUntilDue: soonest.daysUntilDue,
+    nextDueDate: soonest.nextDueDate,
+    dueCountdownLabel: soonest.dueCountdownLabel,
+  };
 }
 
 /**

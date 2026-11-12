@@ -11,6 +11,9 @@ import {
   List,
   Eye,
   Phone,
+  AlertTriangle,
+  BellRing,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -30,6 +33,7 @@ import { MemberCard, getInitials } from '../components/members/MemberCard';
 import { MemberDetailModal } from '../components/members/MemberDetailModal';
 import { EnrollMemberModal } from '../components/members/EnrollMemberModal';
 import { calculateLoanSummary } from '../services/interestEngine';
+import { getMemberDueStatus, type MemberDueStatus } from '../utils/paymentAlerts';
 import {
   formatCurrency,
   formatDate,
@@ -61,7 +65,13 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
   const memberMetricsMap = useMemo(() => {
     const map = new Map<
       string,
-      { contributed: number; shares: number; payoff: number; principal: number }
+      {
+        contributed: number;
+        shares: number;
+        payoff: number;
+        principal: number;
+        dueStatus: MemberDueStatus | null;
+      }
     >();
     members.forEach((member) => {
       const matchingEntries = fundEntries.filter(
@@ -80,23 +90,28 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
 
       let principal = 0;
       let payoff = 0;
-      loans
-        .filter(
-          (l) =>
-            l.borrowerId === member.id ||
-            (l.borrowerName &&
-              member.fullName &&
-              l.borrowerName.trim().toLowerCase() === member.fullName.trim().toLowerCase())
-        )
-        .forEach((l) => {
-          const summary = calculateLoanSummary(l);
-          if (l.status !== 'paid' && !summary.isFullyPaid) {
-            principal += summary.remainingPrincipal;
-            payoff += summary.totalPayoffAmount;
-          }
-        });
+      const memberLoans = loans.filter(
+        (l) =>
+          l.borrowerId === member.id ||
+          (l.borrowerName &&
+            member.fullName &&
+            l.borrowerName.trim().toLowerCase() === member.fullName.trim().toLowerCase())
+      );
+      memberLoans.forEach((l) => {
+        const summary = calculateLoanSummary(l);
+        if (l.status !== 'paid' && !summary.isFullyPaid) {
+          principal += summary.remainingPrincipal;
+          payoff += summary.totalPayoffAmount;
+        }
+      });
 
-      map.set(member.id, { contributed, shares, payoff, principal });
+      map.set(member.id, {
+        contributed,
+        shares,
+        payoff,
+        principal,
+        dueStatus: getMemberDueStatus(memberLoans),
+      });
     });
     return map;
   }, [members, fundEntries, loans, shareValue]);
@@ -399,6 +414,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
                     shares: 0,
                     payoff: 0,
                     principal: 0,
+                    dueStatus: null,
                   };
                   const isSuspended = member.status === 'suspended';
 
@@ -410,8 +426,31 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
                             {getInitials(member.fullName, member.username)}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                              {member.fullName}
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                              <span className="truncate">{member.fullName}</span>
+                              {metrics.dueStatus && (
+                                <span
+                                  title={`${metrics.dueStatus.hasUnpaidInterest ? 'Interest due · ' : ''}${metrics.dueStatus.dueCountdownLabel} (${formatDate(metrics.dueStatus.nextDueDate)})`}
+                                  className={cn(
+                                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0',
+                                    metrics.dueStatus.hasUnpaidInterest
+                                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                      : metrics.dueStatus.daysUntilDue <= 7
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                                        : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+                                  )}
+                                  data-testid={`list-due-indicator-${member.id}`}
+                                >
+                                  {metrics.dueStatus.hasUnpaidInterest ? (
+                                    <AlertTriangle className="w-3 h-3" />
+                                  ) : metrics.dueStatus.daysUntilDue <= 7 ? (
+                                    <BellRing className="w-3 h-3" />
+                                  ) : (
+                                    <Clock className="w-3 h-3" />
+                                  )}
+                                  <span>{metrics.dueStatus.dueCountdownLabel}</span>
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate flex items-center gap-1.5">
                               <span>@{member.username}</span>

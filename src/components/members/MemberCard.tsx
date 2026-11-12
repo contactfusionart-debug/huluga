@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, Eye, Phone, KeyRound, Copy, Check } from 'lucide-react';
+import { Calendar, Eye, Phone, KeyRound, Copy, Check, AlertTriangle, BellRing, Clock } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { useData } from '../../context/DataContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
+import { getMemberDueStatus } from '../../utils/paymentAlerts';
 import {
   formatCurrency,
   formatDate,
@@ -96,7 +97,12 @@ export const MemberCard: React.FC<MemberCardProps> = ({
       }
     });
 
-    return { principal, interest, payoff };
+    return {
+      principal,
+      interest,
+      payoff,
+      dueStatus: getMemberDueStatus(memberLoans),
+    };
   }, [loans, member]);
 
   const finalContributed = totalContributed ?? computedContributed;
@@ -230,6 +236,30 @@ export const MemberCard: React.FC<MemberCardProps> = ({
             {finalInterest > 0 && (
               <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 block mt-0.5">
                 ({formatCurrency(finalPrincipal)} principal)
+              </span>
+            )}
+            {computedLoanMetrics.dueStatus && (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                  computedLoanMetrics.dueStatus.hasUnpaidInterest
+                    ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                    : computedLoanMetrics.dueStatus.daysUntilDue <= 7
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                      : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+                )}
+                data-testid={`member-due-badge-${member.id}`}
+              >
+                {computedLoanMetrics.dueStatus.hasUnpaidInterest ? (
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                ) : computedLoanMetrics.dueStatus.daysUntilDue <= 7 ? (
+                  <BellRing className="w-3 h-3 shrink-0" />
+                ) : (
+                  <Clock className="w-3 h-3 shrink-0" />
+                )}
+                {computedLoanMetrics.dueStatus.hasUnpaidInterest
+                  ? `Interest Due · ${computedLoanMetrics.dueStatus.dueCountdownLabel}`
+                  : computedLoanMetrics.dueStatus.dueCountdownLabel}
               </span>
             )}
           </div>
