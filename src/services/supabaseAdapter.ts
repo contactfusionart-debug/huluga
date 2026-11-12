@@ -474,7 +474,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
       reviewed_at: new Date().toISOString(),
     };
     if (notes !== undefined) updatePayload.review_notes = notes;
-    if (reviewerId !== undefined) updatePayload.reviewed_by = reviewerId;
+    if (reviewerId !== undefined) {
+      updatePayload.reviewed_by = await resolveProfileUuid(client, reviewerId);
+    }
 
     const { data, error } = await client
       .from('loan_applications')
@@ -609,12 +611,13 @@ export class SupabaseAdapter implements DatabaseAdapter {
     }
 
     const loan = mapLoanFromDb(loanData as DbLoan);
+    const recordedById = await resolveProfileUuid(client, payment.recordedBy, payment.borrowerId);
 
     // 2. Insert payment record
     const paymentRow = {
       loan_id: payment.loanId,
       borrower_id: payment.borrowerId,
-      recorded_by: payment.recordedBy,
+      recorded_by: recordedById,
       amount: payment.amount,
       interest_portion: payment.interestPortion,
       principal_portion: payment.principalPortion,
