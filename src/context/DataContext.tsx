@@ -26,7 +26,9 @@ export type DataSourceType = 'local' | 'supabase';
 export const DATA_SOURCE_STORAGE_KEY = 'huluga_data_source';
 
 export interface EnrollMemberInput {
-  fullName: string;
+  firstName: string;
+  lastName: string;
+  address?: string;
   username?: string;
   phoneNumber?: string;
   sharesCount: number;
@@ -320,7 +322,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         const capitalAmount = Math.round(sharesCount * shareValue * 100) / 100;
         const joinedDate = input.joinedDate || new Date().toISOString().split('T')[0];
 
-        const baseSlug = (input.username?.trim() || input.fullName.trim())
+        const firstName = input.firstName.trim();
+        const lastName = input.lastName.trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+
+        const baseSlug = (input.username?.trim() || fullName)
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '_')
           .replace(/^_+|_+$/g, '') || 'member';
@@ -337,7 +343,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         const newProfile: UserProfile = {
           id,
           username,
-          fullName: input.fullName.trim(),
+          fullName,
+          firstName,
+          lastName,
+          address: input.address?.trim() || undefined,
           role: 'member',
           phoneNumber: input.phoneNumber?.trim() || undefined,
           joinedDate,

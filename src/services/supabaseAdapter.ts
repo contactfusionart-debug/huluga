@@ -85,6 +85,9 @@ interface DbProfile {
   id: string;
   username: string;
   full_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  address?: string | null;
   role: 'treasurer' | 'member';
   avatar_url?: string | null;
   phone_number?: string | null;
@@ -164,6 +167,9 @@ function mapProfileFromDb(row: DbProfile): UserProfile {
     id: row.id,
     username: row.username,
     fullName: row.full_name,
+    firstName: row.first_name || undefined,
+    lastName: row.last_name || undefined,
+    address: row.address || undefined,
     role: row.role,
     avatarUrl: row.avatar_url || undefined,
     phoneNumber: row.phone_number || undefined,
@@ -289,6 +295,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
       id: profile.id,
       username: profile.username,
       full_name: profile.fullName,
+      first_name: profile.firstName || null,
+      last_name: profile.lastName || null,
+      address: profile.address || null,
       role: profile.role,
       avatar_url: profile.avatarUrl || null,
       phone_number: profile.phoneNumber || null,

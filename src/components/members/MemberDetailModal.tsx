@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Calendar,
+  MapPin,
   Phone,
   ShieldCheck,
   UserCheck,
@@ -167,6 +168,15 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                       <span className="flex items-center gap-1 font-mono">
                         <Phone className="w-3.5 h-3.5 text-zinc-400" />
                         {currentMember.phoneNumber}
+                      </span>
+                    </>
+                  )}
+                  {currentMember.address && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-zinc-400" />
+                        {currentMember.address}
                       </span>
                     </>
                   )}

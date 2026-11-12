@@ -333,8 +333,14 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       const enrollBtn = await screen.findByTestId('enroll-member-button');
       fireEvent.click(enrollBtn);
 
-      fireEvent.change(screen.getByTestId('enroll-fullname-input'), {
-        target: { value: 'Elena Bautista' },
+      fireEvent.change(screen.getByTestId('enroll-firstname-input'), {
+        target: { value: 'Elena' },
+      });
+      fireEvent.change(screen.getByTestId('enroll-lastname-input'), {
+        target: { value: 'Bautista' },
+      });
+      fireEvent.change(screen.getByTestId('enroll-address-input'), {
+        target: { value: 'Brgy. Tibanga, Iligan City' },
       });
       fireEvent.change(screen.getByTestId('enroll-shares-input'), {
         target: { value: '2' },
@@ -344,7 +350,11 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
 
       await waitFor(async () => {
         const profiles = await adapter.getProfiles();
-        expect(profiles.some((p) => p.fullName === 'Elena Bautista')).toBe(true);
+        const elena = profiles.find((p) => p.fullName === 'Elena Bautista');
+        expect(elena).toBeDefined();
+        expect(elena?.firstName).toBe('Elena');
+        expect(elena?.lastName).toBe('Bautista');
+        expect(elena?.address).toBe('Brgy. Tibanga, Iligan City');
       });
 
       const entries = await adapter.getFundEntries();
@@ -361,8 +371,11 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       const enrollBtn = await screen.findByTestId('enroll-member-button');
       fireEvent.click(enrollBtn);
 
-      fireEvent.change(screen.getByTestId('enroll-fullname-input'), {
-        target: { value: 'Mateo Cruz' },
+      fireEvent.change(screen.getByTestId('enroll-firstname-input'), {
+        target: { value: 'Mateo' },
+      });
+      fireEvent.change(screen.getByTestId('enroll-lastname-input'), {
+        target: { value: 'Cruz' },
       });
       fireEvent.change(screen.getByTestId('enroll-shares-input'), {
         target: { value: '2' },

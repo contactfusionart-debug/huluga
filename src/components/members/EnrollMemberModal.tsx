@@ -20,7 +20,9 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
   const shareValue = settings?.shareValue || DEFAULT_SHARE_VALUE;
   const monthlyRate = settings?.defaultMonthlyInterestRate ?? 5.0;
 
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [address, setAddress] = useState('');
   const [username, setUsername] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [sharesCount, setSharesCount] = useState<string>('1');
@@ -34,7 +36,9 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
   const monthlyInterest = Math.round(capitalTotal * (monthlyRate / 100) * 100) / 100;
 
   const resetForm = () => {
-    setFullName('');
+    setFirstName('');
+    setLastName('');
+    setAddress('');
     setUsername('');
     setPhoneNumber('');
     setSharesCount('1');
@@ -54,8 +58,8 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
     e.preventDefault();
     setError(null);
 
-    if (!fullName.trim()) {
-      setError('Full name is required.');
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('First name and last name are required.');
       return;
     }
 
@@ -67,7 +71,9 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
     setIsSubmitting(true);
     try {
       const enrolled = await enrollMember({
-        fullName: fullName.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        address: address.trim() || undefined,
         username: username.trim() || undefined,
         phoneNumber: phoneNumber.trim() || undefined,
         sharesCount: numericShares,
@@ -113,22 +119,59 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1 sm:col-span-2">
+            <div className="space-y-1">
               <label
-                htmlFor="enroll-full-name"
+                htmlFor="enroll-first-name"
                 className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
               >
-                Full Name <span className="text-rose-500">*</span>
+                First Name <span className="text-rose-500">*</span>
               </label>
               <input
-                id="enroll-full-name"
+                id="enroll-first-name"
                 type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                data-testid="enroll-fullname-input"
-                placeholder="e.g. Elena Bautista"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                data-testid="enroll-firstname-input"
+                placeholder="e.g. Elena"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label
+                htmlFor="enroll-last-name"
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Last Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                id="enroll-last-name"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                data-testid="enroll-lastname-input"
+                placeholder="e.g. Bautista"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-1 sm:col-span-2">
+              <label
+                htmlFor="enroll-address"
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Address <span className="text-zinc-400 font-normal">(optional)</span>
+              </label>
+              <input
+                id="enroll-address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                data-testid="enroll-address-input"
+                placeholder="e.g. Purok 3, Brgy. Tibanga, Iligan City"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
 
