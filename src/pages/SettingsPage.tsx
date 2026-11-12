@@ -6,9 +6,13 @@ import {
   RefreshCw,
   Save,
   ExternalLink,
+  Moon,
+  Sun,
+  Laptop,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme, type Theme } from '../context/ThemeContext';
 import { isSupabaseConfigured } from '../services/supabaseAdapter';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -25,6 +29,7 @@ export const SettingsPage: React.FC = () => {
     resetToMockData,
   } = useData();
   const { showToast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const [organizationName, setOrganizationName] = useState(settings?.organizationName || 'Huluga Community Fund');
   const [currencySymbol, setCurrencySymbol] = useState(settings?.currencySymbol || '₱');
@@ -400,6 +405,71 @@ export const SettingsPage: React.FC = () => {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* ======================================================== */}
+        {/* Card: Appearance & Theme */}
+        {/* ======================================================== */}
+        <Card data-testid="appearance-settings-card">
+          <CardHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                <Sun className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+              </div>
+              <div>
+                <CardTitle>Appearance &amp; Theme</CardTitle>
+                <CardDescription>
+                  Choose how Huluga looks to you. You can set it to Light, Dark, or sync with your system theme.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { key: 'light', label: 'Light Mode', icon: Sun, desc: 'Clean, bright layout' },
+                { key: 'dark', label: 'Dark Mode', icon: Moon, desc: 'High-contrast, easy on eyes' },
+                { key: 'system', label: 'System Default', icon: Laptop, desc: 'Syncs with device appearance' },
+              ].map((item) => {
+                const IconComponent = item.icon;
+                const isSelected = theme === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setTheme(item.key as Theme)}
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900'
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        {item.label}
+                        {isSelected && (
+                          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
+                            (Active)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{item.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 

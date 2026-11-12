@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu, X, ShieldCheck, LogOut, Receipt } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
+import { ThemeToggle } from '../common/ThemeToggle';
 import { cn } from '../../utils/cn';
 
 export interface NavbarProps {
@@ -63,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right: Quick Tools & Current User Info */}
         <div className="flex items-center gap-2.5">
+          <ThemeToggle size="sm" />
           {currentUser && isTreasurer && onQuickRecordPayment && (
             <button
               type="button"

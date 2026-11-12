@@ -10,6 +10,7 @@ import {
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastContainer } from './components/common/ToastContainer';
 import { AppShell } from './components/layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
@@ -109,16 +110,18 @@ export function App({ initialUser, useMemoryRouter = false, initialEntries }: Ap
   const routerProps = useMemoryRouter ? { initialEntries: initialEntries ?? ['/'] } : {};
 
   return (
-    <ToastProvider>
-      <AuthProvider initialUser={initialUser}>
-        <DataProvider>
-          <RouterComponent {...routerProps}>
-            <ToastContainer />
-            <AppRoutes />
-          </RouterComponent>
-        </DataProvider>
-      </AuthProvider>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider initialUser={initialUser}>
+          <DataProvider>
+            <RouterComponent {...routerProps}>
+              <ToastContainer />
+              <AppRoutes />
+            </RouterComponent>
+          </DataProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 

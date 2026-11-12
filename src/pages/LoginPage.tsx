@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { isSupabaseConfigured } from '../services/supabaseAdapter';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 import { cn } from '../utils/cn';
 
 export const LoginPage: React.FC = () => {
@@ -111,7 +112,11 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col justify-center items-center p-4 sm:p-6 transition-colors">
+    <div className="relative min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col justify-center items-center p-4 sm:p-6 transition-colors">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center space-y-2">
