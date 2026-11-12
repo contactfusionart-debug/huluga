@@ -257,6 +257,44 @@ describe('Loan Application & Member Self-Service Feature', () => {
       // Pending counter increments
       expect(screen.getByTestId('stat-pending').textContent).toContain('1');
     });
+
+    it('requires selecting an eligible co-maker when requesting amount >= ₱20,000', async () => {
+      renderApplicationsPage(mockMemberJuan);
+
+      const applyBtn = await screen.findByTestId('apply-for-loan-button');
+      fireEvent.click(applyBtn);
+
+      const amountInput = await screen.findByTestId('loan-amount-input');
+      const purposeInput = screen.getByTestId('loan-purpose-input');
+      const submitBtn = screen.getByTestId('submit-loan-application-button');
+
+      // Request ₱25,000 (triggers co-maker requirement)
+      fireEvent.change(amountInput, { target: { value: '25000' } });
+      fireEvent.change(purposeInput, { target: { value: 'Commercial vegetable wholesale inventory' } });
+      fireEvent.click(screen.getByTestId('accept-terms-checkbox'));
+      fireEvent.click(screen.getByTestId('accept-policy-checkbox'));
+
+      // Co-maker section should appear
+      expect(await screen.findByTestId('co-maker-section')).toBeDefined();
+
+      // Attempt submit without choosing co-maker
+      fireEvent.click(submitBtn);
+      expect(await screen.findByTestId('co-maker-error')).toBeDefined();
+
+      // Select eligible co-maker (e.g. Maria Santos / user-1)
+      const coMakerSelect = screen.getByTestId('co-maker-select');
+      fireEvent.change(coMakerSelect, { target: { value: 'user-1' } });
+
+      // Re-submit
+      fireEvent.click(submitBtn);
+
+      // Modal closes
+      await waitFor(() => {
+        expect(screen.queryByText('Apply for Member Loan')).toBeNull();
+      });
+
+      expect(await screen.findByText('Commercial vegetable wholesale inventory')).toBeDefined();
+    });
   });
 
   describe('Member Self-Service Cancellation', () => {

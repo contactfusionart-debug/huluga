@@ -59,6 +59,11 @@ export interface DataContextValue {
     status: ApplicationStatus,
     notes?: string
   ) => Promise<LoanApplication>;
+  updateCoMakerStatus: (
+    id: string,
+    coMakerStatus: import('../types').CoMakerStatus,
+    notes?: string
+  ) => Promise<LoanApplication>;
   disburseLoan: (
     applicationId: string,
     options?: import('../types').DisbursementOptions
@@ -244,6 +249,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         if (status === 'approved') {
           const targetApp = applications.find((a) => a.id === id);
           if (targetApp) {
+            if (targetApp.coMakerRequired && targetApp.coMakerStatus !== 'accepted') {
+              throw new Error('Cannot approve: Nominated co-maker has not yet accepted the endorsement.');
+            }
             const borrower = members.find((m) => m.id === targetApp.borrowerId);
             const otherApps = applications.filter((a) => a.id !== id);
             const creditSummary = getMemberCreditSummary(
@@ -288,6 +296,40 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       }
     },
     [applications, members, loans, settings.memberLoanLimit, settings.currencySymbol, currentUser, refreshData]
+  );
+
+  const updateCoMakerStatus = useCallback(
+    async (
+      id: string,
+      coMakerStatus: import('../types').CoMakerStatus,
+      notes?: string
+    ): Promise<LoanApplication> => {
+      setError(null);
+      try {
+        if (adapterRef.current.updateCoMakerStatus) {
+          const result = await adapterRef.current.updateCoMakerStatus(id, coMakerStatus, notes);
+          await refreshData();
+          return result;
+        } else {
+          // Fallback if adapter does not implement updateCoMakerStatus
+          const targetApp = applications.find((a) => a.id === id);
+          if (!targetApp) throw new Error(`Application with id "${id}" not found`);
+          const updatedNote = notes ? `[CO_MAKER:${coMakerStatus}] ${notes}` : `[CO_MAKER:${coMakerStatus}]`;
+          const result = await adapterRef.current.updateApplicationStatus(
+            id,
+            targetApp.status,
+            updatedNote
+          );
+          await refreshData();
+          return result;
+        }
+      } catch (err: any) {
+        const msg = err?.message || 'Failed to update co-maker status.';
+        setError(msg);
+        throw err;
+      }
+    },
+    [applications, refreshData]
   );
 
   const disburseLoan = useCallback(
@@ -551,6 +593,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       addFundEntry,
       createLoanApplication,
       updateApplicationStatus,
+      updateCoMakerStatus,
       disburseLoan,
       recordPayment,
       getPayments,
@@ -574,6 +617,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
       addFundEntry,
       createLoanApplication,
       updateApplicationStatus,
+      updateCoMakerStatus,
       disburseLoan,
       recordPayment,
       getPayments,

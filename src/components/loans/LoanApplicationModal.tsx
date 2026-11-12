@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calculator, Info, AlertCircle, FileText } from 'lucide-react';
+import { Calculator, Info, AlertCircle, FileText, Users, ShieldCheck } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
@@ -8,6 +8,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
+import { getEligibleCoMakers, isCoMakerRequired } from '../../utils/coMaker';
 import type { LoanApplication } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -31,6 +32,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
   const [borrowerId, setBorrowerId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [purpose, setPurpose] = useState<string>('');
+  const [coMakerId, setCoMakerId] = useState<string>('');
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
   const [acceptedPolicy, setAcceptedPolicy] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -39,6 +41,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
 
   const defaultMonthlyRate = settings?.defaultMonthlyInterestRate ?? 5.0;
   const loanLimit = settings?.memberLoanLimit;
+  const coMakerThreshold = settings?.coMakerLoanThreshold ?? 20000;
 
   // Net Liquid Fund Pool available in Treasury
   const netLiquidPool = useMemo(() => {
@@ -58,6 +61,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
       setBorrowerId(initialBorrower);
       setAmount('');
       setPurpose('');
+      setCoMakerId('');
       setAcceptedTerms(false);
       setAcceptedPolicy(false);
       setErrors({});
@@ -95,6 +99,14 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
     return Math.round(parsedAmount * (defaultMonthlyRate / 100) * 100) / 100;
   }, [parsedAmount, defaultMonthlyRate]);
 
+  const isCoMakerNeeded = useMemo(() => {
+    return isCoMakerRequired(parsedAmount, coMakerThreshold);
+  }, [parsedAmount, coMakerThreshold]);
+
+  const eligibleCoMakers = useMemo(() => {
+    return getEligibleCoMakers(members, selectedBorrower?.id || borrowerId, fundEntries, loans);
+  }, [members, selectedBorrower, borrowerId, fundEntries, loans]);
+
   // Field validation
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -122,6 +134,17 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
       newErrors.purpose = 'Please provide a detailed purpose (at least 5 characters)';
     }
 
+    if (isCoMakerNeeded) {
+      if (!coMakerId) {
+        newErrors.coMaker = `Please select an eligible co-maker for loans of ${formatCurrency(coMakerThreshold)} or greater.`;
+      } else {
+        const found = eligibleCoMakers.find((c) => c.member.id === coMakerId);
+        if (!found || !found.isEligible) {
+          newErrors.coMaker = 'The selected co-maker does not meet eligibility requirements.';
+        }
+      }
+    }
+
     if (!acceptedTerms) {
       newErrors.terms = 'You must accept the Loan Terms & Conditions to proceed.';
     }
@@ -146,6 +169,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
     try {
       const numAmount = parseFloat(amount);
       const borrowerName = selectedBorrower?.fullName || currentUser?.fullName || 'Member';
+      const selectedCoMaker = eligibleCoMakers.find((c) => c.member.id === coMakerId)?.member;
 
       const created = await createLoanApplication({
         borrowerId: selectedBorrower?.id || currentUser?.id || borrowerId,
@@ -153,6 +177,10 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
         requestedAmount: numAmount,
         purpose: purpose.trim(),
         monthlyInterestRate: defaultMonthlyRate,
+        coMakerRequired: isCoMakerNeeded,
+        coMakerId: isCoMakerNeeded ? coMakerId : undefined,
+        coMakerName: isCoMakerNeeded ? (selectedCoMaker?.fullName || selectedCoMaker?.username) : undefined,
+        coMakerStatus: isCoMakerNeeded ? 'pending' : 'none',
       });
 
       showToast(
@@ -484,6 +512,77 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
             </p>
           )}
         </div>
+
+        {/* Co-Maker Guarantee Requirement for High-Value Loans */}
+        {isCoMakerNeeded && (
+          <div
+            className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3"
+            data-testid="co-maker-section"
+          >
+            <div className="flex items-start gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                  Co-Maker Guarantee Required (Loans &ge; {formatCurrency(coMakerThreshold)})
+                </h4>
+                <p className="text-xs text-amber-800 dark:text-amber-400/90 mt-0.5 leading-relaxed">
+                  High-value loans require an active co-maker with at least 1 paid-up share (₱5,000) and no overdue loans. Your nominated co-maker must digitally accept joint liability in their Member Dashboard before this loan can be approved.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="co-maker-select"
+                className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+              >
+                Select Co-Maker / Guarantor <span className="text-rose-500">*</span>
+              </label>
+              <select
+                id="co-maker-select"
+                data-testid="co-maker-select"
+                value={coMakerId}
+                onChange={(e) => {
+                  setCoMakerId(e.target.value);
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.coMaker;
+                    return next;
+                  });
+                }}
+                disabled={isSubmitting}
+                className={cn(
+                  'w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-950 dark:focus:ring-zinc-300',
+                  errors.coMaker
+                    ? 'border-rose-300 focus:ring-rose-500'
+                    : 'border-zinc-300 dark:border-zinc-700'
+                )}
+              >
+                <option value="">-- Choose an eligible co-maker --</option>
+                {eligibleCoMakers.map((cand) => (
+                  <option
+                    key={cand.member.id}
+                    value={cand.member.id}
+                    disabled={!cand.isEligible}
+                  >
+                    {cand.member.fullName || cand.member.username}{' '}
+                    {cand.isEligible
+                      ? `(${formatCurrency(cand.paidUpCapital)} shares • Good Standing)`
+                      : `(Ineligible: ${cand.reasons[0]})`}
+                  </option>
+                ))}
+              </select>
+              {errors.coMaker && (
+                <p
+                  className="mt-1 text-xs text-rose-600 dark:text-rose-400"
+                  data-testid="co-maker-error"
+                >
+                  {errors.coMaker}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Member Terms & Conditions and Lending Policy Agreement */}
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-4 space-y-3.5">

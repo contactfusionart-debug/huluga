@@ -190,6 +190,25 @@ export class LocalStorageAdapter implements DatabaseAdapter {
     return app;
   }
 
+  async updateCoMakerStatus(
+    id: string,
+    coMakerStatus: import('../types').CoMakerStatus,
+    notes?: string
+  ): Promise<LoanApplication> {
+    const apps = await this.getLoanApplications();
+    const app = apps.find((a) => a.id === id);
+    if (!app) {
+      throw new Error(`Application with id "${id}" not found`);
+    }
+    app.coMakerStatus = coMakerStatus;
+    app.coMakerRespondedAt = new Date().toISOString();
+    if (notes) {
+      app.coMakerNotes = notes;
+    }
+    this.storage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+    return app;
+  }
+
   // --- Loans ---
 
   async getLoans(): Promise<Loan[]> {
@@ -240,6 +259,8 @@ export class LocalStorageAdapter implements DatabaseAdapter {
       principalPaid: 0,
       interestPaid: 0,
       notes: `${app.purpose}${noteSuffix}`,
+      coMakerId: app.coMakerId,
+      coMakerName: app.coMakerName,
     };
 
     const loans = await this.getLoans();

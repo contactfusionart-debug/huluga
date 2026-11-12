@@ -29,6 +29,11 @@ export interface DatabaseAdapter {
     notes?: string,
     reviewerId?: string
   ): Promise<LoanApplication>;
+  updateCoMakerStatus?(
+    id: string,
+    coMakerStatus: import('../types').CoMakerStatus,
+    notes?: string
+  ): Promise<LoanApplication>;
 
   // Active & historical loans
   getLoans(): Promise<Loan[]>;
