@@ -2,8 +2,10 @@ import React, { createContext, useContext, useState, useCallback, useMemo } from
 import type { UserProfile } from '../types';
 import { INITIAL_PROFILES } from '../services/mockData';
 import { STORAGE_KEYS, localStorageAdapter } from '../services/localStorageAdapter';
-import { isSupabaseConfigured, getSupabaseCredentials } from '../services/supabaseAdapter';
-import { createClient } from '@supabase/supabase-js';
+import {
+  isSupabaseConfigured,
+  getSharedSupabaseClient,
+} from '../services/supabaseAdapter';
 import { toISODateString } from '../utils/formatters';
 
 export const ACTIVE_USER_STORAGE_KEY = 'huluga_active_user';
@@ -102,9 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
       // Check Supabase if configured
       if (isSupabaseConfigured() && password) {
         try {
-          const creds = getSupabaseCredentials();
-          if (creds.url && creds.anonKey) {
-            const client = createClient(creds.url, creds.anonKey);
+          const client = getSharedSupabaseClient();
+          if (client) {
             const email = cleanUsername.includes('@')
               ? cleanUsername
               : `${cleanUsername}@huluga.local`;
@@ -222,11 +223,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         if (!password || password.length < 6) {
           return { success: false, error: 'Password must be at least 6 characters.' };
         }
-        const creds = getSupabaseCredentials();
-        if (!creds.url || !creds.anonKey) {
+        const client = getSharedSupabaseClient();
+        if (!client) {
           return { success: false, error: 'Supabase credentials are missing.' };
         }
-        const client = createClient(creds.url, creds.anonKey);
         const email = cleanUsername.includes('@')
           ? cleanUsername
           : `${cleanUsername}@huluga.local`;
@@ -328,9 +328,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
   const loginWithGoogle = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (isSupabaseConfigured()) {
       try {
-        const creds = getSupabaseCredentials();
-        if (creds.url && creds.anonKey) {
-          const client = createClient(creds.url, creds.anonKey);
+        const client = getSharedSupabaseClient();
+        if (client) {
           await client.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -376,9 +375,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     setCurrentUser(null);
     if (import.meta.env.MODE !== 'test' && isSupabaseConfigured()) {
       try {
-        const creds = getSupabaseCredentials();
-        if (creds.url && creds.anonKey) {
-          const client = createClient(creds.url, creds.anonKey);
+        const client = getSharedSupabaseClient();
+        if (client) {
           void client.auth.signOut();
         }
       } catch {}

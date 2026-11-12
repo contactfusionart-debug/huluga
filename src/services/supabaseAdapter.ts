@@ -54,6 +54,24 @@ export function getSupabaseCredentials(): SupabaseConfig {
   return { url: url.trim(), anonKey: anonKey.trim() };
 }
 
+let cachedClientKey = '';
+let cachedSharedClient: SupabaseClient | null = null;
+
+/**
+ * Returns a shared SupabaseClient singleton for the current credentials so
+ * AuthContext and SupabaseAdapter always share the exact same auth session.
+ */
+export function getSharedSupabaseClient(config?: SupabaseConfig): SupabaseClient | null {
+  const creds = config ?? getSupabaseCredentials();
+  if (!creds.url || !creds.anonKey) return null;
+  const key = `${creds.url}::${creds.anonKey}`;
+  if (!cachedSharedClient || cachedClientKey !== key) {
+    cachedSharedClient = createClient(creds.url, creds.anonKey);
+    cachedClientKey = key;
+  }
+  return cachedSharedClient;
+}
+
 /**
  * Checks if Supabase URL and anon key are available.
  */
@@ -238,16 +256,13 @@ export class SupabaseAdapter implements DatabaseAdapter {
     if (customClient) {
       this.client = customClient;
     } else if (this.config.url && this.config.anonKey) {
-      this.client = createClient(this.config.url, this.config.anonKey);
+      this.client = getSharedSupabaseClient(this.config);
     }
   }
 
   private getClient(): SupabaseClient {
     if (!this.client) {
-      const creds = getSupabaseCredentials();
-      if (creds.url && creds.anonKey) {
-        this.client = createClient(creds.url, creds.anonKey);
-      }
+      this.client = getSharedSupabaseClient();
     }
     if (!this.client) {
       throw new SupabaseNotConfiguredError();
@@ -620,9 +635,20 @@ export class SupabaseAdapter implements DatabaseAdapter {
       .update(row)
       .eq('id', 1)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(`Supabase updateSettings failed: ${error.message}`);
+    if (!data) {
+      const { data: sessionData } = await client.auth.getSession();
+      if (!sessionData?.session) {
+        throw new Error(
+          'No active Supabase session. Please log out and sign in with your Supabase account.'
+        );
+      }
+      throw new Error(
+        'Settings update was blocked by Supabase RLS (ensure your account role is "treasurer" and app_settings row id=1 exists).'
+      );
+    }
     return mapAppSettingsFromDb(data as DbAppSettings);
   }
 
