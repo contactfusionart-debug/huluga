@@ -22,6 +22,7 @@ export interface AuthContextValue {
   ) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   switchDemoUser: (userId: string) => void;
   availableUsers: UserProfile[];
 }
@@ -116,6 +117,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
             });
 
             if (error) {
+              // Fallback: allow enrolled members with username + generated_password in profiles table
+              const { data: matchedProfile } = await client
+                .from('profiles')
+                .select('*')
+                .eq('username', cleanUsername)
+                .eq('generated_password', password)
+                .maybeSingle();
+
+              if (matchedProfile) {
+                if (matchedProfile.status === 'suspended') {
+                  return { success: false, error: 'Account is suspended.' };
+                }
+                const profile: UserProfile = {
+                  id: matchedProfile.id,
+                  username: matchedProfile.username,
+                  fullName: matchedProfile.full_name,
+                  firstName: matchedProfile.first_name || undefined,
+                  lastName: matchedProfile.last_name || undefined,
+                  address: matchedProfile.address || undefined,
+                  role: matchedProfile.role,
+                  joinedDate: matchedProfile.joined_date,
+                  status: matchedProfile.status,
+                  avatarUrl: matchedProfile.avatar_url || undefined,
+                  phoneNumber: matchedProfile.phone_number || undefined,
+                  committedShares:
+                    matchedProfile.committed_shares != null
+                      ? Number(matchedProfile.committed_shares)
+                      : undefined,
+                  committedCapital:
+                    matchedProfile.committed_capital != null
+                      ? Number(matchedProfile.committed_capital)
+                      : undefined,
+                  creditLimit:
+                    matchedProfile.credit_limit != null
+                      ? Number(matchedProfile.credit_limit)
+                      : undefined,
+                  generatedPassword: matchedProfile.generated_password || undefined,
+                };
+                setCurrentUser(profile);
+                try {
+                  if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(profile));
+                  }
+                } catch {}
+                return { success: true };
+              }
+
               if (import.meta.env.MODE !== 'test') {
                 return { success: false, error: error.message };
               }
@@ -132,11 +180,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
                   id: profileData.id,
                   username: profileData.username,
                   fullName: profileData.full_name,
+                  firstName: profileData.first_name || undefined,
+                  lastName: profileData.last_name || undefined,
+                  address: profileData.address || undefined,
                   role: profileData.role,
                   joinedDate: profileData.joined_date,
                   status: profileData.status,
-                  avatarUrl: profileData.avatar_url,
-                  phoneNumber: profileData.phone_number,
+                  avatarUrl: profileData.avatar_url || undefined,
+                  phoneNumber: profileData.phone_number || undefined,
+                  committedShares:
+                    profileData.committed_shares != null
+                      ? Number(profileData.committed_shares)
+                      : undefined,
+                  committedCapital:
+                    profileData.committed_capital != null
+                      ? Number(profileData.committed_capital)
+                      : undefined,
+                  creditLimit:
+                    profileData.credit_limit != null
+                      ? Number(profileData.credit_limit)
+                      : undefined,
+                  generatedPassword: profileData.generated_password || undefined,
                 };
                 setCurrentUser(profile);
                 try {
@@ -413,6 +477,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     [availableUsers]
   );
 
+  const changePassword = useCallback(
+    async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = newPassword.trim();
+      if (trimmed.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters.' };
+      }
+      if (!currentUser) {
+        return { success: false, error: 'No signed-in user.' };
+      }
+
+      if (isSupabaseConfigured()) {
+        try {
+          const client = getSharedSupabaseClient();
+          if (client) {
+            const { data: authData } = await client.auth.getUser();
+            if (authData?.user) {
+              const { error: authErr } = await client.auth.updateUser({ password: trimmed });
+              if (authErr) {
+                return { success: false, error: authErr.message };
+              }
+            }
+            const { error: profileErr } = await client
+              .from('profiles')
+              .update({ generated_password: trimmed })
+              .eq('id', currentUser.id);
+            if (profileErr) {
+              return { success: false, error: profileErr.message };
+            }
+          }
+        } catch (err) {
+          if (import.meta.env.MODE !== 'test') {
+            return {
+              success: false,
+              error: err instanceof Error ? err.message : 'Failed to update password.',
+            };
+          }
+        }
+      }
+
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        generatedPassword: trimmed,
+      };
+      setCurrentUser(updatedUser);
+      setAvailableUsers((prev) =>
+        prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+      );
+      try {
+        await localStorageAdapter.createProfile(updatedUser);
+      } catch {}
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(updatedUser));
+        }
+      } catch {}
+
+      return { success: true };
+    },
+    [currentUser]
+  );
+
   const isAuthenticated = Boolean(currentUser);
   const isTreasurer = currentUser?.role === 'treasurer';
 
@@ -425,6 +550,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
       registerWithUsername,
       loginWithGoogle,
       logout,
+      changePassword,
       switchDemoUser,
       availableUsers,
     }),
@@ -436,6 +562,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
       registerWithUsername,
       loginWithGoogle,
       logout,
+      changePassword,
       switchDemoUser,
       availableUsers,
     ]

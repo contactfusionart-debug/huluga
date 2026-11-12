@@ -20,11 +20,16 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
+import { MemberDashboard } from '../components/dashboard/MemberDashboard';
 import { cn } from '../utils/cn';
 
 export const DashboardPage: React.FC = () => {
   const { isTreasurer } = useAuth();
   const { fundEntries, loans, applications, settings } = useData();
+
+  if (!isTreasurer) {
+    return <MemberDashboard />;
+  }
 
   const currency = settings.currencySymbol || 'â‚±';
 

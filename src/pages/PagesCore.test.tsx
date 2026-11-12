@@ -212,15 +212,38 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
       expect(screen.getByText('Ana Reyes')).toBeDefined();
     });
 
-    it('always focuses on Treasurer Executive Cockpit even when signed in as a member', async () => {
+    it('renders Member Dashboard with share capital, loans, credit limit, transaction history, apply loan, and change password', async () => {
       renderWithProviders(<DashboardPage />, { initialUser: mockMemberJuan });
 
       await waitFor(() => {
-        expect(screen.getByTestId('treasurer-dashboard')).toBeDefined();
+        expect(screen.getByTestId('member-dashboard')).toBeDefined();
       });
 
-      expect(screen.getByRole('heading', { name: /executive cockpit/i })).toBeDefined();
-      expect(screen.queryByTestId('member-dashboard')).toBeNull();
+      expect(screen.queryByTestId('treasurer-dashboard')).toBeNull();
+      expect(screen.getByTestId('member-stat-share-capital')).toBeDefined();
+      expect(screen.getByTestId('member-stat-active-loans')).toBeDefined();
+      expect(screen.getByTestId('member-stat-available-credit')).toBeDefined();
+      expect(screen.getByTestId('member-loans-section')).toBeDefined();
+      expect(screen.getByTestId('member-transactions-section')).toBeDefined();
+
+      // Apply for Loan button opens LoanApplicationModal
+      fireEvent.click(screen.getByTestId('member-apply-loan-btn'));
+      expect(await screen.findByTestId('loan-amount-input')).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+      // Change Password flow validates and updates password
+      fireEvent.click(screen.getByTestId('member-change-password-btn'));
+      fireEvent.change(screen.getByTestId('new-password-input'), {
+        target: { value: 'newpass123' },
+      });
+      fireEvent.change(screen.getByTestId('confirm-password-input'), {
+        target: { value: 'newpass123' },
+      });
+      fireEvent.click(screen.getByTestId('submit-change-password'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('change-password-form')).toBeNull();
+      });
     });
   });
 
