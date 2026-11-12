@@ -202,6 +202,30 @@ describe('Loan Application & Member Self-Service Feature', () => {
       );
     });
 
+    it('validates that member must accept terms and conditions and lending policy before applying', async () => {
+      renderApplicationsPage(mockMemberJuan);
+
+      const applyBtn = await screen.findByTestId('apply-for-loan-button');
+      fireEvent.click(applyBtn);
+
+      const amountInput = await screen.findByTestId('loan-amount-input');
+      const purposeInput = screen.getByTestId('loan-purpose-input');
+      const submitBtn = screen.getByTestId('submit-loan-application-button');
+
+      fireEvent.change(amountInput, { target: { value: '10000' } });
+      fireEvent.change(purposeInput, { target: { value: 'Purchase of seeds and fertilizer' } });
+      fireEvent.click(submitBtn);
+
+      // Validation errors should appear
+      expect(await screen.findByTestId('terms-error')).toBeDefined();
+      expect(screen.getByTestId('terms-error').textContent).toContain('Loan Terms & Conditions');
+      expect(screen.getByTestId('policy-error')).toBeDefined();
+      expect(screen.getByTestId('policy-error').textContent).toContain('Cooperative Lending & Delinquency Policy');
+
+      // Modal remains open
+      expect(screen.getByText('Apply for Member Loan')).toBeDefined();
+    });
+
     it('successfully submits a loan application and adds it to the queue', async () => {
       renderApplicationsPage(mockMemberJuan);
 
@@ -214,6 +238,11 @@ describe('Loan Application & Member Self-Service Feature', () => {
 
       fireEvent.change(amountInput, { target: { value: '18000' } });
       fireEvent.change(purposeInput, { target: { value: 'Purchase of new agricultural water pump' } });
+      
+      // Accept Terms and Policy checkboxes
+      fireEvent.click(screen.getByTestId('accept-terms-checkbox'));
+      fireEvent.click(screen.getByTestId('accept-policy-checkbox'));
+
       fireEvent.click(submitBtn);
 
       // Modal closes, application appears in table

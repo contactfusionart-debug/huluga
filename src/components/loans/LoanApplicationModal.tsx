@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calculator, Info, AlertCircle } from 'lucide-react';
+import { Calculator, Info, AlertCircle, FileText } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
@@ -31,6 +31,8 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
   const [borrowerId, setBorrowerId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [purpose, setPurpose] = useState<string>('');
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
+  const [acceptedPolicy, setAcceptedPolicy] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -56,6 +58,8 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
       setBorrowerId(initialBorrower);
       setAmount('');
       setPurpose('');
+      setAcceptedTerms(false);
+      setAcceptedPolicy(false);
       setErrors({});
       setSubmitError(null);
       setIsSubmitting(false);
@@ -116,6 +120,14 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
       newErrors.purpose = 'Loan purpose is required';
     } else if (purpose.trim().length < 5) {
       newErrors.purpose = 'Please provide a detailed purpose (at least 5 characters)';
+    }
+
+    if (!acceptedTerms) {
+      newErrors.terms = 'You must accept the Loan Terms & Conditions to proceed.';
+    }
+
+    if (!acceptedPolicy) {
+      newErrors.policy = 'You must accept the Cooperative Lending & Delinquency Policy.';
     }
 
     setErrors(newErrors);
@@ -471,6 +483,81 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
               {errors.purpose}
             </p>
           )}
+        </div>
+
+        {/* Member Terms & Conditions and Lending Policy Agreement */}
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 p-4 space-y-3.5">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+              Loan Terms &amp; Policy Acceptance
+            </h4>
+          </div>
+
+          {/* Collapsible / Scrollable Terms Summary */}
+          <div className="p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 space-y-1.5 max-h-32 overflow-y-auto font-mono">
+            <p className="font-semibold text-zinc-900 dark:text-zinc-100">Huluga Community Fund Agreement:</p>
+            <p>1. Fixed monthly interest accrues at {formatPercent(defaultMonthlyRate)} of the outstanding principal balance per cycle.</p>
+            <p>2. Repayments exceeding monthly interest reduce principal, immediately lowering subsequent interest charges.</p>
+            <p>3. Borrowers agree to settle monthly interest on or before due date. Unpaid interest impacts member credit rating.</p>
+            <p>4. Cooperative reserves the right to hold share capital as security against defaulted loans.</p>
+          </div>
+
+          <div className="space-y-2.5 pt-1">
+            {/* Checkbox 1: Terms and Conditions */}
+            <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => {
+                  setAcceptedTerms(e.target.checked);
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.terms;
+                    return next;
+                  });
+                }}
+                disabled={isSubmitting}
+                data-testid="accept-terms-checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span className="text-xs text-zinc-700 dark:text-zinc-300 leading-snug">
+                I accept the <strong className="text-zinc-900 dark:text-zinc-100">Loan Terms and Conditions</strong>, including the monthly interest rate, open-ended repayment schedule, and principal reduction terms.
+              </span>
+            </label>
+            {errors.terms && (
+              <p className="text-[11px] text-rose-600 dark:text-rose-400 pl-6.5" data-testid="terms-error">
+                {errors.terms}
+              </p>
+            )}
+
+            {/* Checkbox 2: Community Policy */}
+            <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+              <input
+                type="checkbox"
+                checked={acceptedPolicy}
+                onChange={(e) => {
+                  setAcceptedPolicy(e.target.checked);
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.policy;
+                    return next;
+                  });
+                }}
+                disabled={isSubmitting}
+                data-testid="accept-policy-checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span className="text-xs text-zinc-700 dark:text-zinc-300 leading-snug">
+                I accept the <strong className="text-zinc-900 dark:text-zinc-100">Cooperative Lending &amp; Delinquency Policy</strong> and acknowledge my obligation to honor scheduled payments to safeguard community fund liquidity.
+              </span>
+            </label>
+            {errors.policy && (
+              <p className="text-[11px] text-rose-600 dark:text-rose-400 pl-6.5" data-testid="policy-error">
+                {errors.policy}
+              </p>
+            )}
+          </div>
         </div>
       </form>
     </Modal>
