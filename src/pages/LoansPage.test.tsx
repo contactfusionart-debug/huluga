@@ -62,7 +62,7 @@ describe('Loan Management & Repayment Ledger Feature', () => {
 
       expect(await screen.findByText('Loan Management & Repayment Ledger')).toBeDefined();
       expect(
-        screen.getByText(/Manage member loan portfolios with automatic 5% monthly interest/i)
+        screen.getByText(/Manage member loan portfolios with automatic 5(\.0)?% monthly interest/i)
       ).toBeDefined();
 
       // Check Portfolio Stat Cards

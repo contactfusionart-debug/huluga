@@ -16,6 +16,7 @@ import { ApplicationListTable } from '../components/loans/ApplicationListTable';
 import { LoanApplicationModal } from '../components/loans/LoanApplicationModal';
 import { ApplicationReviewModal } from '../components/loans/ApplicationReviewModal';
 import type { LoanApplication } from '../types';
+import { formatPercent } from '../utils/formatters';
 import { cn } from '../utils/cn';
 
 export interface ApplicationsPageProps {
@@ -24,7 +25,9 @@ export interface ApplicationsPageProps {
 
 export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className }) => {
   const { currentUser, isTreasurer } = useAuth();
-  const { applications } = useData();
+  const { applications, settings } = useData();
+  const defaultRate = settings?.defaultMonthlyInterestRate ?? 5.0;
+  const rateLabel = formatPercent(defaultRate);
 
   const [isApplyModalOpen, setIsApplyModalOpen] = useState<boolean>(false);
   const [selectedApplication, setSelectedApplication] = useState<LoanApplication | null>(null);
@@ -81,7 +84,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             {isTreasurer
               ? 'Review pending loan requests, evaluate member equity, and approve or disburse community loans.'
-              : 'Submit loan applications with live 5% monthly interest previews and track approval progress in real-time.'}
+              : `Submit loan applications with live ${rateLabel} monthly interest previews and track approval progress in real-time.`}
           </p>
         </div>
 
@@ -129,7 +132,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
           <StatCard
             title="Total Disbursed"
             value={metrics.disbursed}
-            subtitle="Actively yielding 5%/mo"
+            subtitle={`Actively yielding ${rateLabel}/mo`}
             icon={<Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
             data-testid="stat-disbursed"
           />
@@ -152,10 +155,10 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
           </div>
           <div className="space-y-0.5">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              Huluga 5.0% Fixed Monthly Interest Loan Model
+              Huluga {rateLabel} Fixed Monthly Interest Loan Model
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
-              Loans accrue a fixed 5.0% monthly interest rate on outstanding principal without a fixed maturity deadline.
+              Loans accrue a fixed {rateLabel} monthly interest rate on outstanding principal without a fixed maturity deadline.
               Borrowers may pay monthly interest and make voluntary principal reductions at any time to minimize overall financing costs.
             </p>
           </div>

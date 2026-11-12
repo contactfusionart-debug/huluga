@@ -155,7 +155,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Apply for Member Loan"
-      description="Submit a new loan request. Incurred interest is fixed at 5.0% monthly with open-ended principal repayment."
+      description={`Submit a new loan request. Incurred interest is fixed at ${formatPercent(defaultMonthlyRate)} monthly with open-ended principal repayment.`}
       size="lg"
       footer={
         <div className="flex items-center justify-end gap-3 w-full">
@@ -336,7 +336,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
 
             <div className="p-3 rounded-lg bg-white dark:bg-zinc-900 border border-emerald-200/90 dark:border-emerald-800/60">
               <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                Monthly Interest (5.0%)
+                Monthly Interest ({formatPercent(defaultMonthlyRate)})
               </span>
               <span className="text-lg font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-400">
                 {formatCurrency(monthlyInterest)}
@@ -348,7 +348,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
           <div className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed bg-zinc-100/60 dark:bg-zinc-800/60 p-2.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60">
             <Info className="w-4 h-4 shrink-0 text-zinc-500 mt-0.5" />
             <span>
-              <strong>Open-ended loan:</strong> pay 5% monthly interest each cycle; pay down the principal at any time. No fixed maturity date or penalty for early principal repayment.
+              <strong>Open-ended loan:</strong> pay {formatPercent(defaultMonthlyRate)} monthly interest each cycle; pay down the principal at any time. No fixed maturity date or penalty for early principal repayment.
             </span>
           </div>
 

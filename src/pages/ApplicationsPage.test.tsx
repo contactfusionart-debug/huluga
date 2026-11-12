@@ -160,7 +160,7 @@ describe('Loan Application & Member Self-Service Feature', () => {
 
       // Note on open-ended repayment model
       expect(preview.textContent).toContain(
-        'pay 5% monthly interest each cycle; pay down the principal at any time'
+        'pay 5.0% monthly interest each cycle; pay down the principal at any time'
       );
     });
 

@@ -14,7 +14,7 @@ import { LoanCard } from '../components/loans/LoanCard';
 import { RecordPaymentModal } from '../components/loans/RecordPaymentModal';
 import { LoanLedgerView } from '../components/loans/LoanLedgerView';
 import { calculateLoanSummary } from '../services/interestEngine';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 import type { Loan } from '../types';
 import { cn } from '../utils/cn';
 
@@ -25,7 +25,9 @@ export interface LoansPageProps {
 export type LoanTab = 'active' | 'paid';
 
 export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
-  const { loans } = useData();
+  const { loans, settings } = useData();
+  const defaultRate = settings?.defaultMonthlyInterestRate ?? 5.0;
+  const rateLabel = formatPercent(defaultRate);
 
   const [activeTab, setActiveTab] = useState<LoanTab>('active');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -117,7 +119,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
             </h1>
           </div>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Manage member loan portfolios with automatic 5% monthly interest calculations and waterfall repayment tracking.
+            Manage member loan portfolios with automatic {rateLabel} monthly interest calculations and waterfall repayment tracking.
           </p>
         </div>
       </div>
@@ -135,7 +137,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
         <StatCard
           title="Accrued Unpaid Interest"
           value={formatCurrency(portfolioStats.unpaidInterest)}
-          subtitle="Fixed 5.0% monthly accrual"
+          subtitle={`Fixed ${rateLabel} monthly accrual`}
           icon={<Percent className="w-5 h-5" />}
           data-testid="stat-unpaid-interest"
         />
