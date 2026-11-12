@@ -30,6 +30,11 @@ create table if not exists public.profiles (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Enforce at most one treasurer across all profiles
+create unique index if not exists one_treasurer_only
+  on public.profiles (role)
+  where role = 'treasurer';
+
 -- 2. FUND ENTRIES TABLE
 create table if not exists public.fund_entries (
   id uuid primary key default gen_random_uuid(),

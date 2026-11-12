@@ -338,6 +338,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     async (memberId: string, role: UserRole): Promise<void> => {
       setError(null);
       try {
+        // Enforce single-treasurer invariant: demote any other treasurer before promoting a new one
+        if (role === 'treasurer') {
+          const otherTreasurers = members.filter(
+            (m) => m.role === 'treasurer' && m.id !== memberId
+          );
+          for (const prev of otherTreasurers) {
+            await adapterRef.current.updateProfileRole(prev.id, 'member');
+          }
+        }
         await adapterRef.current.updateProfileRole(memberId, role);
         await refreshData();
       } catch (err: any) {
@@ -346,7 +355,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [refreshData]
+    [members, refreshData]
   );
 
   const updateMemberCreditLimit = useCallback(

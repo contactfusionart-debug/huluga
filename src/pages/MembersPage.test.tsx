@@ -237,9 +237,11 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       // Close modal
       fireEvent.click(screen.getByTestId('close-member-modal-btn'));
 
-      // Verify updated stats on the page: Treasurers count is now 2
+      // Single-treasurer rule: Treasurers count remains 1 (previous treasurer demoted)
+      const updatedProfiles = await adapter.getProfiles();
+      expect(updatedProfiles.find((p) => p.id === 'user-1')?.role).toBe('member');
       await waitFor(() => {
-        expect(screen.getByTestId('stat-treasurers-count').textContent).toContain('2');
+        expect(screen.getByTestId('stat-treasurers-count').textContent).toContain('1');
       });
     });
 

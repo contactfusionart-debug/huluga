@@ -351,7 +351,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
               id: data.user!.id,
               username: cleanUsername.split('@')[0],
               fullName: cleanFullName,
-              role: 'treasurer',
+              role: 'member',
               joinedDate: toISODateString(new Date()),
               status: 'active',
             };
