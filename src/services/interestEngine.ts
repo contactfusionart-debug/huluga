@@ -83,7 +83,6 @@ export function calculateMonthsElapsed(startDateStr: string, asOfDate: Date = ne
 export function calculateLoanSummary(loan: Loan, asOfDate: Date = new Date()): LoanSummary {
   const principalAmount = loan.principalAmount;
   const monthlyInterestRate = loan.monthlyInterestRate ?? DEFAULT_MONTHLY_INTEREST_RATE;
-  const monthlyInterestAmount = Math.round((principalAmount * (monthlyInterestRate / 100)) * 100) / 100;
 
   // If loan is already marked paid, freeze calculation at payoff date (or loan start date if missing)
   const effectiveAsOf = loan.status === 'paid'
@@ -91,13 +90,33 @@ export function calculateLoanSummary(loan: Loan, asOfDate: Date = new Date()): L
     : asOfDate;
 
   const monthsElapsed = calculateMonthsElapsed(loan.startDate, effectiveAsOf);
-  const totalInterestIncurred = Math.round((monthsElapsed * monthlyInterestAmount) * 100) / 100;
   const totalInterestPaid = Math.round((loan.interestPaid || 0) * 100) / 100;
   const principalPaid = Math.round((loan.principalPaid || 0) * 100) / 100;
 
   const remainingPrincipal = loan.status === 'paid'
     ? 0
     : Math.max(0, Math.round((principalAmount - principalPaid) * 100) / 100);
+
+  // Monthly interest is always generated based on the current updated principal balance
+  const monthlyInterestAmount =
+    Math.round(remainingPrincipal * (monthlyInterestRate / 100) * 100) / 100;
+
+  let totalInterestIncurred: number;
+  if (principalPaid > 0 && loan.lastPaymentDate) {
+    // Once principal has been paid down, prior interest was settled at lastPaymentDate;
+    // subsequent months accrue at the new monthly interest based on remainingPrincipal.
+    const monthsAtLastPayment = calculateMonthsElapsed(
+      loan.startDate,
+      new Date(loan.lastPaymentDate)
+    );
+    const newMonths = Math.max(0, monthsElapsed - monthsAtLastPayment);
+    totalInterestIncurred =
+      Math.round((totalInterestPaid + newMonths * monthlyInterestAmount) * 100) / 100;
+  } else {
+    const originalMonthlyInterest =
+      Math.round(principalAmount * (monthlyInterestRate / 100) * 100) / 100;
+    totalInterestIncurred = Math.round(monthsElapsed * originalMonthlyInterest * 100) / 100;
+  }
 
   const unpaidInterest = loan.status === 'paid'
     ? 0

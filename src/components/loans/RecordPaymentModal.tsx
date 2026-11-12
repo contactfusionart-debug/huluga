@@ -84,6 +84,9 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   const projectedRemainingInterest = summary
     ? Math.max(0, Math.round((summary.unpaidInterest - allocation.interestPortion) * 100) / 100)
     : 0;
+  const projectedMonthlyInterest = summary
+    ? Math.round(projectedRemainingPrincipal * (summary.monthlyInterestRate / 100) * 100) / 100
+    : 0;
   const isPayoffAchieved =
     summary !== null &&
     parsedAmount > 0 &&
@@ -456,6 +459,21 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 </span>
               </div>
             </div>
+
+            {allocation.principalPortion > 0 && projectedRemainingPrincipal > 0 && (
+              <div
+                className="p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/30 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between"
+                data-testid="new-monthly-interest-preview"
+              >
+                <span>
+                  New Monthly Interest ({formatPercent(summary.monthlyInterestRate)} of{' '}
+                  <strong className="font-mono">{formatCurrency(projectedRemainingPrincipal)}</strong>):
+                </span>
+                <strong className="font-mono tabular-nums font-semibold">
+                  {formatCurrency(projectedMonthlyInterest)} / mo
+                </strong>
+              </div>
+            )}
 
             {allocation.excessAmount > 0 && (
               <div className="p-2.5 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">

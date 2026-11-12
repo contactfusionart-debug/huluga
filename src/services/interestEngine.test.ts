@@ -228,6 +228,35 @@ describe('interestEngine', () => {
       expect(summary.totalInterestIncurred).toBe(350);
       expect(summary.totalPayoffAmount).toBe(10350);
     });
+
+    it('recalculates monthly interest based on updated remaining principal after principal paydown', () => {
+      // Borrowed ₱10,000 at 10% on Jan 15. Paid ₱4,000 on Feb 15:
+      // ₱1,000 covered month 1 interest, ₱3,000 reduced principal to ₱7,000.
+      const loan: Loan = {
+        id: 'loan-7',
+        borrowerId: 'user-7',
+        borrowerName: 'Marco Polo',
+        principalAmount: 10000,
+        monthlyInterestRate: 10.0,
+        startDate: '2026-01-15',
+        status: 'active',
+        principalPaid: 3000,
+        interestPaid: 1000,
+        lastPaymentDate: '2026-02-15',
+      };
+
+      // Right after payment on Feb 15: new monthly interest is 10% of ₱7,000 = ₱700
+      const atPayment = calculateLoanSummary(loan, new Date('2026-02-15T12:00:00Z'));
+      expect(atPayment.remainingPrincipal).toBe(7000);
+      expect(atPayment.monthlyInterestAmount).toBe(700);
+      expect(atPayment.unpaidInterest).toBe(0);
+
+      // Next month (Mar 15): 1 new month accrues at the new ₱700 monthly interest
+      const nextMonth = calculateLoanSummary(loan, new Date('2026-03-15T12:00:00Z'));
+      expect(nextMonth.monthlyInterestAmount).toBe(700);
+      expect(nextMonth.unpaidInterest).toBe(700);
+      expect(nextMonth.totalPayoffAmount).toBe(7700);
+    });
   });
 
   describe('allocatePayment', () => {
