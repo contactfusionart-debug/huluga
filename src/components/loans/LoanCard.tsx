@@ -97,9 +97,13 @@ export const LoanCard: React.FC<LoanCardProps> = ({
 
           <ProgressBar
             label="Accrued Interest Settled"
-            value={summary.totalInterestPaid}
-            max={Math.max(summary.totalInterestIncurred, summary.totalInterestPaid, 1)}
-            valueLabel={`${formatCurrency(summary.totalInterestPaid)} / ${formatCurrency(summary.totalInterestIncurred)}`}
+            value={Math.min(summary.totalInterestPaid, summary.totalInterestIncurred)}
+            max={Math.max(summary.totalInterestIncurred, 1)}
+            valueLabel={
+              summary.totalInterestPaid > summary.totalInterestIncurred
+                ? `${formatCurrency(summary.totalInterestIncurred)} / ${formatCurrency(summary.totalInterestIncurred)} (+${formatCurrency(summary.totalInterestPaid - summary.totalInterestIncurred)} adv.)`
+                : `${formatCurrency(summary.totalInterestPaid)} / ${formatCurrency(summary.totalInterestIncurred)}`
+            }
             showPercentage
             variant={summary.unpaidInterest === 0 ? 'emerald' : 'amber'}
             size="sm"
