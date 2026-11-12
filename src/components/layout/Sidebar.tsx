@@ -4,9 +4,7 @@ import {
   LayoutDashboard,
   Wallet,
   HandCoins,
-  ClipboardList,
   Users,
-  PieChart,
   Settings,
   ShieldCheck,
   LogOut,
@@ -30,17 +28,10 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { name: 'Dashboard', to: '/', icon: LayoutDashboard },
-  { name: 'Funds Ledger', to: '/funds', icon: Wallet },
-  { name: 'Active Loans', to: '/loans', icon: HandCoins },
-  {
-    name: 'Applications',
-    to: '/applications',
-    icon: ClipboardList,
-    isPendingBadge: true,
-  },
+  { name: 'Home', to: '/', icon: LayoutDashboard },
+  { name: 'Shares', to: '/shares', icon: Wallet },
+  { name: 'Loans', to: '/loans', icon: HandCoins, isPendingBadge: true },
   { name: 'Members', to: '/members', icon: Users },
-  { name: 'Dividends', to: '/dividends', icon: PieChart },
   { name: 'Settings', to: '/settings', icon: Settings, treasurerNotice: true },
 ];
 
@@ -73,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
       <div className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
         <div>
           <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 select-none">
-            Core Modules
+            Menu
           </div>
           <nav className="space-y-1" aria-label="Main Navigation">
             {NAV_ITEMS.map((item) => {

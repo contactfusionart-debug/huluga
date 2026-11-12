@@ -13,11 +13,9 @@ import { DataProvider } from './context/DataContext';
 import { ToastContainer } from './components/common/ToastContainer';
 import { AppShell } from './components/layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
-import { FundsPage } from './pages/FundsPage';
-import { LoansPage } from './pages/LoansPage';
-import { ApplicationsPage } from './pages/ApplicationsPage';
+import { SharesPage } from './pages/SharesPage';
+import { LoansHubPage } from './pages/LoansHubPage';
 import { MembersPage } from './pages/MembersPage';
-import { DividendsPage } from './pages/DividendsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import type { UserProfile } from './types';
@@ -53,11 +51,13 @@ export function AppRoutes() {
       {/* Protected routes wrapped in AppShell */}
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/funds" element={<FundsPage />} />
-        <Route path="/loans" element={<LoansPage />} />
-        <Route path="/applications" element={<ApplicationsPage />} />
+        <Route path="/shares" element={<SharesPage />} />
+        <Route path="/loans" element={<LoansHubPage />} />
         <Route path="/members" element={<MembersPage />} />
-        <Route path="/dividends" element={<DividendsPage />} />
+        {/* Legacy routes redirect to their new tabbed locations */}
+        <Route path="/funds" element={<Navigate to="/shares" replace />} />
+        <Route path="/dividends" element={<Navigate to="/shares?tab=dividends" replace />} />
+        <Route path="/applications" element={<Navigate to="/loans?tab=applications" replace />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

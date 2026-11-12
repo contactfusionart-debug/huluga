@@ -165,19 +165,19 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center gap-2">
           {isTreasurer ? (
             <>
-              <Link to="/funds">
+              <Link to="/shares">
                 <Button variant="outline" size="sm" icon={<Wallet className="w-3.5 h-3.5" />}>
                   Manage Funds
                 </Button>
               </Link>
-              <Link to="/applications">
+              <Link to="/loans?tab=applications">
                 <Button variant="primary" size="sm" icon={<ClipboardList className="w-3.5 h-3.5" />}>
                   Review Applications
                 </Button>
               </Link>
             </>
           ) : (
-            <Link to="/applications">
+            <Link to="/loans?tab=applications">
               <Button
                 variant="primary"
                 size="sm"
@@ -223,7 +223,7 @@ export const DashboardPage: React.FC = () => {
               data-testid="stat-unpaid-interest"
             />
 
-            <Link to="/applications" className="group">
+            <Link to="/loans?tab=applications" className="group">
               <StatCard
                 title="Pending Loan Applications"
                 value={treasurerMetrics.pendingAppsCount}
@@ -241,12 +241,12 @@ export const DashboardPage: React.FC = () => {
             <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-2 select-none">
               Quick Portals:
             </span>
-            <Link to="/funds">
+            <Link to="/shares">
               <Button variant="secondary" size="sm" icon={<Wallet className="w-3.5 h-3.5" />}>
                 Manage Funds
               </Button>
             </Link>
-            <Link to="/applications">
+            <Link to="/loans?tab=applications">
               <Button variant="secondary" size="sm" icon={<ClipboardList className="w-3.5 h-3.5" />}>
                 Review Applications ({treasurerMetrics.pendingAppsCount})
               </Button>
@@ -275,7 +275,7 @@ export const DashboardPage: React.FC = () => {
                   </CardDescription>
                 </div>
                 <Link
-                  to="/applications"
+                  to="/loans?tab=applications"
                   className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                 >
                   View All &rarr;
@@ -313,7 +313,7 @@ export const DashboardPage: React.FC = () => {
                               {app.monthlyInterestRate}% / mo
                             </div>
                           </div>
-                          <Link to="/applications">
+                          <Link to="/loans?tab=applications">
                             <Button variant="outline" size="sm">
                               Review
                             </Button>
@@ -334,7 +334,7 @@ export const DashboardPage: React.FC = () => {
                   <CardDescription>Latest fund inflows, disbursements, and expenses</CardDescription>
                 </div>
                 <Link
-                  to="/funds"
+                  to="/shares"
                   className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                 >
                   Full Ledger &rarr;
@@ -425,7 +425,7 @@ export const DashboardPage: React.FC = () => {
               data-testid="stat-my-interest"
             />
 
-            <Link to="/applications" className="group">
+            <Link to="/loans?tab=applications" className="group">
               <StatCard
                 title="My Pending Applications"
                 value={memberMetrics.myPendingCount}
@@ -454,7 +454,7 @@ export const DashboardPage: React.FC = () => {
                 Pay interest monthly, repay principal whenever you are ready.
               </p>
             </div>
-            <Link to="/applications" className="shrink-0">
+            <Link to="/loans?tab=applications" className="shrink-0">
               <Button
                 variant="primary"
                 size="md"
@@ -493,7 +493,7 @@ export const DashboardPage: React.FC = () => {
                     description="You do not have any active loans right now. Submit a loan request whenever you need liquidity."
                     action={{
                       label: 'Apply for a Loan',
-                      onClick: () => navigate('/applications'),
+                      onClick: () => navigate('/loans?tab=applications'),
                       icon: <PlusCircle className="w-3.5 h-3.5" />,
                     }}
                   />

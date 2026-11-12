@@ -483,19 +483,20 @@ describe('Base UI Component Library', () => {
         </MemoryRouter>
       );
 
-      const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
-      const fundsLink = screen.getByRole('link', { name: /funds ledger/i });
-      const loansLink = screen.getByRole('link', { name: /active loans/i });
-      const appsLink = screen.getByRole('link', { name: /applications/i });
+      const dashboardLink = screen.getByRole('link', { name: /^home$/i });
+      const sharesLink = screen.getByRole('link', { name: /^shares$/i });
+      const loansLink = screen.getByRole('link', { name: /^loans/i });
       const membersLink = screen.getByRole('link', { name: /members/i });
       const settingsLink = screen.getByRole('link', { name: /settings/i });
 
       expect(dashboardLink).toBeDefined();
-      expect(fundsLink).toBeDefined();
+      expect(sharesLink).toBeDefined();
       expect(loansLink).toBeDefined();
-      expect(appsLink).toBeDefined();
       expect(membersLink).toBeDefined();
       expect(settingsLink).toBeDefined();
+      // Simplified menu: Funds/Dividends and Applications are now tabs, not menu items
+      expect(screen.queryByRole('link', { name: /funds ledger/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /applications/i })).toBeNull();
 
       // /loans should have aria-current="page"
       expect(loansLink.getAttribute('aria-current')).toBe('page');
@@ -574,8 +575,8 @@ describe('Base UI Component Library', () => {
         </MemoryRouter>
       );
 
-      const fundsLink = screen.getByRole('link', { name: /funds ledger/i });
-      fireEvent.click(fundsLink);
+      const sharesLink = screen.getByRole('link', { name: /^shares$/i });
+      fireEvent.click(sharesLink);
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 

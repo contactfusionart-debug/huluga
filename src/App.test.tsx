@@ -75,18 +75,25 @@ describe('Application End-to-End Routing & Lifecycle Integration', () => {
         expect(screen.getByTestId('dashboard-page')).toBeDefined();
       });
 
-      // 2. Navigate to Funds Ledger
-      const fundsLink = screen.getByRole('link', { name: /funds ledger/i });
-      fireEvent.click(fundsLink);
+      // 2. Navigate to Shares (Contributions tab is default)
+      const sharesLink = screen.getByRole('link', { name: /^shares$/i });
+      fireEvent.click(sharesLink);
 
       await waitFor(() => {
+        expect(screen.getByTestId('shares-page')).toBeDefined();
         expect(screen.getByTestId('funds-page')).toBeDefined();
         expect(screen.getByText(/Fund Management & Treasury/i)).toBeDefined();
         expect(screen.getByTestId('record-fund-entry-button')).toBeDefined();
       });
 
-      // 3. Navigate to Active Loans
-      const loansLink = screen.getByRole('link', { name: /active loans/i });
+      // 2b. Switch to Year-End Dividends tab
+      fireEvent.click(screen.getByTestId('tab-dividends'));
+      await waitFor(() => {
+        expect(screen.getByTestId('dividends-page')).toBeDefined();
+      });
+
+      // 3. Navigate to Loans (Loans tab is default)
+      const loansLink = screen.getByRole('link', { name: /^loans/i });
       fireEvent.click(loansLink);
 
       await waitFor(() => {
@@ -94,9 +101,8 @@ describe('Application End-to-End Routing & Lifecycle Integration', () => {
         expect(screen.getByText(/Loan Management & Repayment Ledger/i)).toBeDefined();
       });
 
-      // 4. Navigate to Applications
-      const appsLink = screen.getByRole('link', { name: /applications/i });
-      fireEvent.click(appsLink);
+      // 4. Switch to Applications tab
+      fireEvent.click(screen.getByTestId('tab-applications'));
 
       await waitFor(() => {
         expect(screen.getByTestId('applications-page')).toBeDefined();
@@ -123,12 +129,27 @@ describe('Application End-to-End Routing & Lifecycle Integration', () => {
       });
 
       // 7. Navigate back to Dashboard
-      const dashboardLink = screen.getByRole('link', { name: /^dashboard$/i });
+      const dashboardLink = screen.getByRole('link', { name: /^home$/i });
       fireEvent.click(dashboardLink);
 
       await waitFor(() => {
         expect(screen.getByTestId('dashboard-page')).toBeDefined();
         expect(screen.getByText(/Executive Cockpit/i)).toBeDefined();
+      });
+    });
+
+    it('redirects legacy routes to their new tabbed locations', async () => {
+      const { unmount } = render(<App useMemoryRouter initialEntries={['/applications']} />);
+      await waitFor(() => {
+        expect(screen.getByTestId('loans-hub-page')).toBeDefined();
+        expect(screen.getByTestId('applications-page')).toBeDefined();
+      });
+      unmount();
+
+      render(<App useMemoryRouter initialEntries={['/dividends']} />);
+      await waitFor(() => {
+        expect(screen.getByTestId('shares-page')).toBeDefined();
+        expect(screen.getByTestId('dividends-page')).toBeDefined();
       });
     });
   });
