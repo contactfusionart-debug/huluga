@@ -93,3 +93,32 @@ export function toISODateString(date: Date = new Date()): string {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Generates a deterministic username and password from a member's name and phone number.
+ */
+export function generateMemberCredentials(
+  firstName: string,
+  lastName: string,
+  phoneNumber?: string
+): { username: string; password: string } {
+  const cleanFirst = firstName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const cleanLast = lastName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const phoneDigits = (phoneNumber || '').replace(/\D/g, '');
+  const phoneSuffix = phoneDigits.slice(-4) || '1015';
+
+  const baseUsername =
+    [cleanFirst, cleanLast].filter(Boolean).join('.') || 'member';
+  const username = phoneDigits.length >= 4 && !cleanLast
+    ? `${baseUsername}${phoneSuffix}`
+    : baseUsername;
+
+  const namePrefix = cleanFirst.slice(0, 4) || cleanLast.slice(0, 4) || 'huluga';
+  const lastInitial = cleanLast.slice(0, 2);
+  let password = `${namePrefix}${lastInitial}${phoneSuffix}`;
+  if (password.length < 6) {
+    password = `${password}huluga`.slice(0, 8);
+  }
+
+  return { username, password };
+}

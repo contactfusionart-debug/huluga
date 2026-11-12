@@ -14,6 +14,7 @@ export interface UserProfile {
   status: 'active' | 'suspended';
   committedShares?: number;
   committedCapital?: number;
+  generatedPassword?: string;
 }
 
 export type FundEntryType =

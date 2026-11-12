@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { UserPlus, Wallet, CalendarClock, AlertCircle } from 'lucide-react';
+import { UserPlus, Wallet, CalendarClock, AlertCircle, KeyRound } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { formatCurrency, formatPercent, DEFAULT_SHARE_VALUE } from '../../utils/formatters';
+import {
+  formatCurrency,
+  formatPercent,
+  DEFAULT_SHARE_VALUE,
+  generateMemberCredentials,
+} from '../../utils/formatters';
 import { cn } from '../../utils/cn';
 
 export interface EnrollMemberModalProps {
@@ -34,6 +39,14 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
   const numericShares = Math.max(0, parseFloat(sharesCount) || 0);
   const capitalTotal = Math.round(numericShares * shareValue * 100) / 100;
   const monthlyInterest = Math.round(capitalTotal * (monthlyRate / 100) * 100) / 100;
+  const generatedCreds = generateMemberCredentials(firstName, lastName, phoneNumber);
+  const previewUsername = username.trim()
+    ? username
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || generatedCreds.username
+    : generatedCreds.username;
 
   const resetForm = () => {
     setFirstName('');
@@ -211,6 +224,38 @@ export const EnrollMemberModal: React.FC<EnrollMemberModalProps> = ({ isOpen, on
               />
             </div>
           </div>
+
+          {(firstName.trim() || lastName.trim() || phoneNumber.trim()) && (
+            <div
+              data-testid="enroll-credentials-preview"
+              className="rounded-lg border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+            >
+              <div className="flex items-center gap-2 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                <KeyRound className="w-3.5 h-3.5 shrink-0" />
+                <span>Generated Login Credentials</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  User:{' '}
+                  <strong
+                    data-testid="enroll-generated-username"
+                    className="text-zinc-900 dark:text-zinc-100"
+                  >
+                    {previewUsername}
+                  </strong>
+                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  Pass:{' '}
+                  <strong
+                    data-testid="enroll-generated-password"
+                    className="text-zinc-900 dark:text-zinc-100"
+                  >
+                    {generatedCreds.password}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Section 2: Shares & Initial Capital */}

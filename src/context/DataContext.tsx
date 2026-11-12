@@ -21,6 +21,7 @@ import type { DatabaseAdapter } from '../services/databaseAdapter';
 import { localStorageAdapter } from '../services/localStorageAdapter';
 import { supabaseAdapter, isSupabaseConfigured } from '../services/supabaseAdapter';
 import { AuthContext } from './AuthContext';
+import { generateMemberCredentials } from '../utils/formatters';
 
 export type DataSourceType = 'local' | 'supabase';
 export const DATA_SOURCE_STORAGE_KEY = 'huluga_data_source';
@@ -326,10 +327,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         const lastName = input.lastName.trim();
         const fullName = `${firstName} ${lastName}`.trim();
 
-        const baseSlug = (input.username?.trim() || fullName)
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '_')
-          .replace(/^_+|_+$/g, '') || 'member';
+        const generated = generateMemberCredentials(firstName, lastName, input.phoneNumber);
+        const baseSlug = (
+          input.username?.trim()
+            ? input.username
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9._-]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+            : generated.username
+        ) || 'member';
         const hasCollision = members.some((m) => m.username.toLowerCase() === baseSlug);
         const username = hasCollision
           ? `${baseSlug}_${Math.floor(100 + Math.random() * 900)}`
@@ -343,6 +350,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         const newProfile: UserProfile = {
           id,
           username,
+          generatedPassword: generated.password,
           fullName,
           firstName,
           lastName,

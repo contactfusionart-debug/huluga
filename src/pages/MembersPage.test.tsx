@@ -342,12 +342,18 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       fireEvent.change(screen.getByTestId('enroll-address-input'), {
         target: { value: 'Brgy. Tibanga, Iligan City' },
       });
+      fireEvent.change(screen.getByTestId('enroll-phone-input'), {
+        target: { value: '0917-555-0199' },
+      });
+      expect(screen.getByTestId('enroll-generated-username').textContent).toBe('elena.bautista');
+      expect(screen.getByTestId('enroll-generated-password').textContent).toBe('elenba0199');
       fireEvent.change(screen.getByTestId('enroll-shares-input'), {
         target: { value: '2' },
       });
       fireEvent.click(screen.getByTestId('enroll-mode-paid'));
       fireEvent.click(screen.getByTestId('submit-enroll-member'));
 
+      let elenaId = '';
       await waitFor(async () => {
         const profiles = await adapter.getProfiles();
         const elena = profiles.find((p) => p.fullName === 'Elena Bautista');
@@ -355,6 +361,9 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
         expect(elena?.firstName).toBe('Elena');
         expect(elena?.lastName).toBe('Bautista');
         expect(elena?.address).toBe('Brgy. Tibanga, Iligan City');
+        expect(elena?.username).toBe('elena.bautista');
+        expect(elena?.generatedPassword).toBe('elenba0199');
+        elenaId = elena!.id;
       });
 
       const entries = await adapter.getFundEntries();
@@ -363,6 +372,16 @@ describe('Member Directory, Profiles & Role Management Feature', () => {
       expect(elenaEntry?.type).toBe('contribution');
       expect(elenaEntry?.amount).toBe(4000);
       expect(elenaEntry?.sharesCount).toBe(2);
+
+      // Credentials remain hidden on MemberCard until the key icon is clicked
+      expect(screen.queryByTestId(`member-credentials-${elenaId}`)).toBeNull();
+      const toggleBtn = await screen.findByTestId(`toggle-credentials-${elenaId}`);
+      fireEvent.click(toggleBtn);
+
+      const credsBox = await screen.findByTestId(`member-credentials-${elenaId}`);
+      expect(credsBox.textContent).toContain('elena.bautista');
+      expect(credsBox.textContent).toContain('elenba0199');
+      expect(screen.queryByTestId('member-detail-modal')).toBeNull();
     });
 
     it('enrolls a new member with committed shares without paying capital upfront', async () => {

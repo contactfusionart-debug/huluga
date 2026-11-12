@@ -95,6 +95,7 @@ interface DbProfile {
   status: 'active' | 'suspended';
   committed_shares?: number | null;
   committed_capital?: number | null;
+  generated_password?: string | null;
 }
 
 interface DbFundEntry {
@@ -177,6 +178,7 @@ function mapProfileFromDb(row: DbProfile): UserProfile {
     status: row.status,
     committedShares: row.committed_shares != null ? Number(row.committed_shares) : undefined,
     committedCapital: row.committed_capital != null ? Number(row.committed_capital) : undefined,
+    generatedPassword: row.generated_password || undefined,
   };
 }
 
@@ -305,6 +307,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
       status: profile.status,
       committed_shares: profile.committedShares ?? 0,
       committed_capital: profile.committedCapital ?? 0,
+      generated_password: profile.generatedPassword || null,
     };
 
     const { data, error } = await client

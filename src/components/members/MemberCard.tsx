@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Calendar, Eye, Phone } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Calendar, Eye, Phone, KeyRound, Copy, Check } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
@@ -105,6 +105,20 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   const finalActiveBalance = activeLoanBalance ?? (finalPrincipal + finalInterest);
 
   const initials = getInitials(member.fullName, member.username);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCredentials = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = `Username: ${member.username}\nPassword: ${member.generatedPassword || 'Set by user'}`;
+    try {
+      await navigator.clipboard?.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard may be unavailable in non-HTTPS or test environments
+    }
+  };
 
   return (
     <Card
@@ -223,24 +237,84 @@ export const MemberCard: React.FC<MemberCardProps> = ({
       </div>
 
       {/* Card Footer */}
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-          <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-          <span>Joined {formatDate(member.joinedDate)}</span>
+      <div className="space-y-2 pt-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <span>Joined {formatDate(member.joinedDate)}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCredentials((prev) => !prev);
+              }}
+              data-testid={`toggle-credentials-${member.id}`}
+              aria-label="Toggle login credentials"
+              title="View login credentials"
+              className={cn(
+                'p-1.5 rounded-lg border transition-colors',
+                showCredentials
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                  : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+              )}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+            </button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onInspect?.(member);
+              }}
+              data-testid={`inspect-member-btn-${member.id}`}
+              icon={<Eye className="w-3.5 h-3.5" />}
+            >
+              View Profile
+            </Button>
+          </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onInspect?.(member);
-          }}
-          data-testid={`inspect-member-btn-${member.id}`}
-          icon={<Eye className="w-3.5 h-3.5" />}
-        >
-          View Profile
-        </Button>
+        {showCredentials && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`member-credentials-${member.id}`}
+            className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80 px-3 py-2 flex items-center justify-between gap-2 text-xs font-mono"
+          >
+            <div className="min-w-0 space-y-0.5">
+              <div className="truncate text-zinc-600 dark:text-zinc-400">
+                User:{' '}
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {member.username}
+                </span>
+              </div>
+              <div className="truncate text-zinc-600 dark:text-zinc-400">
+                Pass:{' '}
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {member.generatedPassword || 'Set by user'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyCredentials}
+              data-testid={`copy-credentials-${member.id}`}
+              aria-label="Copy login credentials"
+              title="Copy credentials"
+              className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/70 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-700 transition-colors shrink-0"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </Card>
   );
