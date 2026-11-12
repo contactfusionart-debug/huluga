@@ -30,15 +30,6 @@ describe('Loan Management & Repayment Ledger Feature', () => {
     status: 'active',
   };
 
-  const mockMemberAna: UserProfile = {
-    id: 'user-3',
-    username: 'ana',
-    fullName: 'Ana Reyes',
-    role: 'member',
-    joinedDate: '2026-01-10',
-    status: 'active',
-  };
-
   beforeEach(() => {
     window.localStorage.clear();
     document.body.style.overflow = '';
@@ -272,35 +263,15 @@ describe('Loan Management & Repayment Ledger Feature', () => {
     });
   });
 
-  describe('Member Scoping & Permissions', () => {
-    it('scopes visible loans to the logged-in member only and hides administrative actions', async () => {
+  describe('Unified Treasurer Portfolio View', () => {
+    it('shows full portfolio without member-only scoping or Viewing as Member banner', async () => {
       renderLoansPage(mockMemberJuan);
 
-      // Role banner indicates member view
-      expect(await screen.findByText(/Viewing as Member:/i)).toBeDefined();
-      expect(screen.getAllByText('Juan Dela Cruz').length).toBeGreaterThanOrEqual(1);
-
-      // Juan can see his own loan
       expect(await screen.findByTestId('loan-card-loan-1')).toBeDefined();
-      expect(screen.getByTestId('loan-card-loan-1').textContent).toContain('Juan Dela Cruz');
-
-      // Carlos's loan is NOT visible to Juan
-      expect(screen.queryByTestId('loan-card-loan-2')).toBeNull();
-      expect(screen.queryByText('Carlos Mendoza')).toBeNull();
-
-      // Juan CANNOT record payments (no administrative button)
-      expect(screen.queryByTestId('record-payment-button-loan-1')).toBeNull();
-
-      // Juan CAN view his own payment ledger
+      expect(screen.getByTestId('loan-card-loan-2')).toBeDefined();
+      expect(screen.queryByText(/Viewing as Member:/i)).toBeNull();
+      expect(screen.getByTestId('record-payment-button-loan-1')).toBeDefined();
       expect(screen.getByTestId('view-ledger-button-loan-1')).toBeDefined();
-    });
-
-    it('displays empty state when member has no loans', async () => {
-      renderLoansPage(mockMemberAna);
-
-      // Ana has no loans
-      expect(await screen.findByText('No active loans')).toBeDefined();
-      expect(screen.getByText('You do not have any active loans at this time.')).toBeDefined();
     });
   });
 

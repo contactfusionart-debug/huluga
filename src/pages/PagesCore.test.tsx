@@ -92,7 +92,7 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
       expect(screen.getByTestId('submit-auth-button').textContent).toMatch(/sign in/i);
       expect(screen.getByTestId('google-login-button')).toBeDefined();
       expect(screen.getByTestId('demo-maria-button')).toBeDefined();
-      expect(screen.getByTestId('demo-juan-button')).toBeDefined();
+      expect(screen.queryByTestId('demo-juan-button')).toBeNull();
     });
 
     it('validates required fields on sign in submission', async () => {

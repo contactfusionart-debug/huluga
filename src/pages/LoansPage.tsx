@@ -6,9 +6,7 @@ import {
   Percent,
   CheckCircle2,
   Wallet,
-  User,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { StatCard } from '../components/common/StatCard';
 import { EmptyState } from '../components/common/EmptyState';
@@ -27,7 +25,6 @@ export interface LoansPageProps {
 export type LoanTab = 'active' | 'paid';
 
 export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
-  const { currentUser, isTreasurer } = useAuth();
   const { loans } = useData();
 
   const [activeTab, setActiveTab] = useState<LoanTab>('active');
@@ -36,20 +33,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
   const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState<boolean>(false);
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState<boolean>(false);
 
-  // Role scoping: Treasurer sees all loans, Members see only their own
-  const scopedLoans = useMemo(() => {
-    if (isTreasurer) return loans;
-    if (!currentUser) return [];
-
-    return loans.filter((l) => {
-      const matchId = l.borrowerId === currentUser.id;
-      const matchName =
-        l.borrowerName &&
-        currentUser.fullName &&
-        l.borrowerName.toLowerCase().trim() === currentUser.fullName.toLowerCase().trim();
-      return matchId || matchName;
-    });
-  }, [loans, isTreasurer, currentUser]);
+  const scopedLoans = loans;
 
   // Portfolio-level financial calculations
   const portfolioStats = useMemo(() => {
@@ -133,19 +117,9 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
             </h1>
           </div>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {isTreasurer
-              ? 'Manage member loan portfolios with automatic 5% monthly interest calculations and waterfall repayment tracking.'
-              : 'View your active community loans, accrued monthly interest, and repayment transaction history.'}
+            Manage member loan portfolios with automatic 5% monthly interest calculations and waterfall repayment tracking.
           </p>
         </div>
-
-        {/* Role indicator pill */}
-        {!isTreasurer && currentUser && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-300 select-none">
-            <User className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Viewing as Member: <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{currentUser.fullName}</strong></span>
-          </div>
-        )}
       </div>
 
       {/* Portfolio Overview Stat Cards */}
@@ -265,9 +239,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
             searchQuery
               ? `No loan records matched "${searchQuery}". Try searching by another keyword.`
               : activeTab === 'active'
-              ? isTreasurer
-                ? 'There are currently no active loans in the portfolio.'
-                : 'You do not have any active loans at this time.'
+              ? 'There are currently no active loans in the portfolio.'
               : 'Loans that have been fully paid off will appear here.'
           }
         />
@@ -277,7 +249,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
             <LoanCard
               key={loan.id}
               loan={loan}
-              isTreasurer={isTreasurer}
+              isTreasurer
               onRecordPayment={handleOpenRecordPayment}
               onViewLedger={handleOpenLedger}
             />

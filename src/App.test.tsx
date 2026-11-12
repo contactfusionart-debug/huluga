@@ -266,25 +266,17 @@ describe('Application End-to-End Routing & Lifecycle Integration', () => {
   });
 
   /* -------------------------------------------------------------------------
-   * 5. Fast Role Switcher in Navigation
+   * 5. Treasurer-Only Workspace Header
    * ----------------------------------------------------------------------- */
-  describe('Fast Role Switching', () => {
-    it('dynamically switches demo user between Treasurer and Member roles in the UI', async () => {
+  describe('Treasurer Workspace Header', () => {
+    it('displays Maria Santos (Treasurer) without member role switcher in Navbar', async () => {
       render(<App useMemoryRouter initialEntries={['/']} />);
 
       await waitFor(() => {
         expect(screen.getByText(/Maria Santos/i)).toBeDefined();
       });
 
-      // Switch to Juan Dela Cruz (Member)
-      const juanButtons = screen.getAllByRole('button', { name: /switch to juan dela cruz/i });
-      fireEvent.click(juanButtons[0]);
-
-      // Navbar should now show Juan Dela Cruz and Member badge
-      await waitFor(() => {
-        expect(screen.getAllByText(/Juan Dela Cruz/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/@juan/i).length).toBeGreaterThan(0);
-      });
+      expect(screen.queryByRole('button', { name: /switch to juan dela cruz/i })).toBeNull();
     });
   });
 });

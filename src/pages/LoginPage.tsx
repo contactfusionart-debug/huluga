@@ -319,7 +319,7 @@ export const LoginPage: React.FC = () => {
             Instant 1-click login using pre-seeded test accounts without entering credentials.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 gap-2.5">
             <button
               type="button"
               onClick={() => handleDemoSwitch('user-1', 'Maria Santos (Treasurer)')}
@@ -339,28 +339,6 @@ export const LoginPage: React.FC = () => {
               </div>
               <Badge variant="emerald" size="sm" dot className="font-semibold text-[10px]">
                 Treasurer
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoSwitch('user-2', 'Juan Dela Cruz (Member)')}
-              data-testid="demo-juan-button"
-              className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-850 hover:border-zinc-400 dark:hover:border-zinc-500 hover:shadow-xs transition-all text-left"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs shrink-0">
-                  JD
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
-                    Juan Dela Cruz
-                  </div>
-                  <div className="text-[10px] text-zinc-500 font-mono">@juan</div>
-                </div>
-              </div>
-              <Badge variant="zinc" size="sm" className="font-semibold text-[10px]">
-                Member
               </Badge>
             </button>
           </div>

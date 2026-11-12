@@ -165,23 +165,12 @@ describe('Funds Management Feature', () => {
       expect(screen.getByText('Transaction Ledger')).toBeDefined();
     });
 
-    it('renders read-only member view with personal contribution banner for regular member', async () => {
+    it('renders unified treasurer workspace without member-only contribution banner', async () => {
       renderFundsPage(mockMember);
 
       expect(await screen.findByText('Fund Management & Treasury')).toBeDefined();
-
-      // Record button is NOT shown for member
-      expect(screen.queryByTestId('record-fund-entry-button')).toBeNull();
-      expect(screen.getByText('Read-Only Member View')).toBeDefined();
-
-      // Personal contribution banner
-      const banner = screen.getByTestId('member-contribution-banner');
-      expect(banner).toBeDefined();
-      expect(screen.getByText('Your Member Capital Contribution')).toBeDefined();
-      expect(banner.textContent).toContain('Logged in as Juan Dela Cruz');
-
-      // Juan Dela Cruz's contribution is ₱40,000.00
-      expect(banner.textContent).toContain('₱40,000.00');
+      expect(screen.getByTestId('record-fund-entry-button')).toBeDefined();
+      expect(screen.queryByTestId('member-contribution-banner')).toBeNull();
     });
   });
 

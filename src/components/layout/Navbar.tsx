@@ -1,7 +1,6 @@
 import React from 'react';
-import { Menu, X, ShieldCheck, User, LogOut } from 'lucide-react';
+import { Menu, X, ShieldCheck, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { DemoUserSwitcher } from '../common/DemoUserSwitcher';
 import { Badge } from '../common/Badge';
 import { cn } from '../../utils/cn';
 
@@ -16,7 +15,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isMobileMenuOpen = false,
   className,
 }) => {
-  const { currentUser, isTreasurer, logout } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   return (
     <header
@@ -60,11 +59,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Center: Demo Switcher */}
-        <div className="hidden md:flex items-center">
-          <DemoUserSwitcher />
-        </div>
-
         {/* Right: Current User Info */}
         <div className="flex items-center gap-3">
           {currentUser ? (
@@ -79,22 +73,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               <Badge
-                variant={isTreasurer ? 'emerald' : 'zinc'}
+                variant="emerald"
                 size="sm"
                 dot
                 className="capitalize font-semibold"
               >
-                {isTreasurer ? (
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                    Treasurer
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <User className="w-3 h-3 text-zinc-500" aria-hidden="true" />
-                    Member
-                  </span>
-                )}
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                  Treasurer
+                </span>
               </Badge>
 
               <button
@@ -112,11 +99,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="text-xs text-zinc-500">Not authenticated</div>
           )}
         </div>
-      </div>
-
-      {/* Mobile Demo Switcher Bar */}
-      <div className="md:hidden px-4 py-1.5 border-t border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/50 overflow-x-auto">
-        <DemoUserSwitcher className="w-full justify-between" />
       </div>
     </header>
   );
