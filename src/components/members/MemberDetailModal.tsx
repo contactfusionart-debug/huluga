@@ -19,6 +19,8 @@ import { useToast } from '../../context/ToastContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { formatCurrency, formatDate, formatPercent } from '../../utils/formatters';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
+import { calculateCreditScore } from '../../utils/creditScore';
+import { CreditScoreBadge } from '../common/CreditScoreBadge';
 import type { UserProfile, UserRole } from '../../types';
 import { getInitials } from './MemberCard';
 import { cn } from '../../utils/cn';
@@ -68,6 +70,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         { fundEntries, settings }
       ),
     [currentMember, loans, applications, fundEntries, settings]
+  );
+
+  const creditScore = useMemo(
+    () => calculateCreditScore(currentMember, loans, fundEntries, []),
+    [currentMember, loans, fundEntries]
   );
 
   React.useEffect(() => {
@@ -346,6 +353,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
             </div>
           );
         })()}
+
+        {/* Community Credit Score Breakdown */}
+        {currentMember && (
+          <CreditScoreBadge creditScore={creditScore} showDetails={true} />
+        )}
 
         {/* Credit Limit & Borrowing Exposure */}
         <div

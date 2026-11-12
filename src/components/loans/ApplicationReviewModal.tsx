@@ -20,6 +20,8 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
+import { calculateCreditScore } from '../../utils/creditScore';
+import { CreditScoreBadge } from '../common/CreditScoreBadge';
 import type { LoanApplication, ApplicationStatus, DisbursementMethod } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -129,6 +131,7 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
     settings?.memberLoanLimit,
     { fundEntries, settings, netLiquidPool }
   );
+  const creditScore = calculateCreditScore(borrower, loans, fundEntries, []);
   const hasSufficientFunds = creditSummary.availableFund >= application.requestedAmount;
   const isFinalized =
     application.status === 'disbursed' ||
@@ -410,6 +413,11 @@ export const ApplicationReviewModal: React.FC<ApplicationReviewModalProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Borrower Credit Score Card */}
+        {borrower && (
+          <CreditScoreBadge creditScore={creditScore} showDetails={true} />
+        )}
 
         {/* Borrower Financial Context Card */}
         <div

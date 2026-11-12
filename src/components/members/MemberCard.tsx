@@ -6,6 +6,8 @@ import { Button } from '../common/Button';
 import { useData } from '../../context/DataContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { getMemberDueStatus } from '../../utils/paymentAlerts';
+import { calculateCreditScore } from '../../utils/creditScore';
+import { CreditScoreBadge } from '../common/CreditScoreBadge';
 import {
   formatCurrency,
   formatDate,
@@ -105,6 +107,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({
     };
   }, [loans, member]);
 
+  const creditScore = useMemo(
+    () => calculateCreditScore(member, loans, fundEntries, []),
+    [member, loans, fundEntries]
+  );
+
   const finalContributed = totalContributed ?? computedContributed;
   const finalPrincipal = activePrincipal ?? computedLoanMetrics.principal;
   const finalInterest = unpaidInterest ?? computedLoanMetrics.interest;
@@ -169,17 +176,20 @@ export const MemberCard: React.FC<MemberCardProps> = ({
             </div>
           </div>
 
-          {/* Role and Status Badges */}
+          {/* Role, Credit Score and Status Badges */}
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            {member.role === 'treasurer' ? (
-              <Badge variant="indigo" size="sm" dot>
-                Treasurer
-              </Badge>
-            ) : (
-              <Badge variant="zinc" size="sm">
-                Member
-              </Badge>
-            )}
+            <div className="flex items-center gap-1.5">
+              <CreditScoreBadge creditScore={creditScore} size="sm" />
+              {member.role === 'treasurer' ? (
+                <Badge variant="indigo" size="sm" dot>
+                  Treasurer
+                </Badge>
+              ) : (
+                <Badge variant="zinc" size="sm">
+                  Member
+                </Badge>
+              )}
+            </div>
 
             {member.status === 'active' ? (
               <Badge variant="emerald" size="sm" dot>

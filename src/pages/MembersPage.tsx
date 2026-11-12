@@ -34,6 +34,8 @@ import { MemberDetailModal } from '../components/members/MemberDetailModal';
 import { EnrollMemberModal } from '../components/members/EnrollMemberModal';
 import { calculateLoanSummary } from '../services/interestEngine';
 import { getMemberDueStatus, type MemberDueStatus } from '../utils/paymentAlerts';
+import { calculateCreditScore } from '../utils/creditScore';
+import { CreditScoreBadge } from '../components/common/CreditScoreBadge';
 import {
   formatCurrency,
   formatDate,
@@ -465,6 +467,10 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1.5">
+                          <CreditScoreBadge
+                            creditScore={calculateCreditScore(member, loans, fundEntries, [])}
+                            size="sm"
+                          />
                           <Badge
                             variant={member.role === 'treasurer' ? 'indigo' : 'zinc'}
                             size="sm"

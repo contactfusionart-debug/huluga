@@ -16,6 +16,8 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
 import { getMemberCreditSummary } from '../../utils/creditLimit';
+import { calculateCreditScore } from '../../utils/creditScore';
+import { CreditScoreBadge } from '../common/CreditScoreBadge';
 import { getPaymentAlerts, getLoanDueInfo } from '../../utils/paymentAlerts';
 import { PaymentAlertsBanner } from '../loans/PaymentAlertsBanner';
 import {
@@ -122,6 +124,7 @@ export const MemberDashboard: React.FC = () => {
     );
 
     const memberAlerts = getPaymentAlerts(memberLoans.map((m) => m.loan));
+    const creditScore = calculateCreditScore(memberProfile, loans, fundEntries, []);
 
     return {
       memberTransactions,
@@ -135,6 +138,7 @@ export const MemberDashboard: React.FC = () => {
       pendingAppsCount,
       creditSummary,
       memberAlerts,
+      creditScore,
     };
   }, [fundEntries, loans, applications, memberProfile, shareValue, settings]);
 
@@ -266,6 +270,9 @@ export const MemberDashboard: React.FC = () => {
           data-testid="member-stat-applications"
         />
       </div>
+
+      {/* Community Credit Score Overview */}
+      <CreditScoreBadge creditScore={metrics.creditScore} showDetails={true} />
 
       {/* Payment Alerts & Due Reminders */}
       <PaymentAlertsBanner alerts={metrics.memberAlerts} mode="member" currency={currency} />
