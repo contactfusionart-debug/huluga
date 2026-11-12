@@ -2,7 +2,12 @@ import React, { useContext } from 'react';
 import { Wallet, PiggyBank, HandCoins, Receipt } from 'lucide-react';
 import { DataContext } from '../../context/DataContext';
 import { StatCard } from '../common/StatCard';
-import { formatCurrency } from '../../utils/formatters';
+import {
+  formatCurrency,
+  DEFAULT_SHARE_VALUE,
+  calculateShares,
+  formatShares,
+} from '../../utils/formatters';
 import type { FundEntry, Loan } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -34,10 +39,16 @@ export const FundSummaryStats: React.FC<FundSummaryStatsProps> = ({
   // Net Liquid Fund Pool: totalInflows - totalOutflows (available cash to lend)
   const netLiquidPool = totalInflows - totalOutflows;
 
+  const shareValue = data?.settings?.shareValue || DEFAULT_SHARE_VALUE;
+  const currency = data?.settings?.currencySymbol || '₱';
+
   // Member Capital Contributed: sum of 'contribution' entries
-  const memberCapitalContributed = entries
-    .filter((e) => e.type === 'contribution')
-    .reduce((sum, e) => sum + e.amount, 0);
+  const contributionEntries = entries.filter((e) => e.type === 'contribution');
+  const memberCapitalContributed = contributionEntries.reduce((sum, e) => sum + e.amount, 0);
+  const totalShares = contributionEntries.reduce(
+    (sum, e) => sum + (e.sharesCount ?? calculateShares(e.amount, shareValue)),
+    0
+  );
 
   // Active Capital Loaned: sum of active loans principal remaining
   const activeLoans = loans.filter((l) => l.status === 'active');
@@ -72,8 +83,8 @@ export const FundSummaryStats: React.FC<FundSummaryStatsProps> = ({
 
       <StatCard
         title="Member Capital Contributed"
-        value={formatCurrency(memberCapitalContributed)}
-        subtitle="Total member equity shares"
+        value={formatCurrency(memberCapitalContributed, currency)}
+        subtitle={`${formatShares(totalShares)} (${formatCurrency(shareValue, currency)}/share)`}
         icon={<PiggyBank className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
       />
 

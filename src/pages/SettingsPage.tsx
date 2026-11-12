@@ -34,6 +34,7 @@ export const SettingsPage: React.FC = () => {
   const [defaultMonthlyInterestRate, setDefaultMonthlyInterestRate] = useState<number>(
     settings?.defaultMonthlyInterestRate ?? 5.0
   );
+  const [shareValue, setShareValue] = useState<number>(settings?.shareValue ?? 2000);
   const [memberLoanLimit, setMemberLoanLimit] = useState<number>(settings?.memberLoanLimit ?? 50000);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -46,6 +47,7 @@ export const SettingsPage: React.FC = () => {
       setOrganizationName(settings.organizationName);
       setCurrencySymbol(settings.currencySymbol);
       setDefaultMonthlyInterestRate(settings.defaultMonthlyInterestRate);
+      setShareValue(settings.shareValue ?? 2000);
       setMemberLoanLimit(settings.memberLoanLimit ?? 50000);
     }
   }, [settings]);
@@ -60,6 +62,7 @@ export const SettingsPage: React.FC = () => {
     const cleanName = organizationName.trim();
     const cleanCurrency = currencySymbol.trim() || '₱';
     const rate = Number(defaultMonthlyInterestRate);
+    const sValue = Number(shareValue);
     const limit = Number(memberLoanLimit);
 
     if (!cleanName) {
@@ -69,6 +72,11 @@ export const SettingsPage: React.FC = () => {
 
     if (isNaN(rate) || rate < 0 || rate > 100) {
       showToast('Monthly interest rate must be between 0% and 100%.', 'error');
+      return;
+    }
+
+    if (isNaN(sValue) || sValue <= 0) {
+      showToast('Share value must be greater than zero.', 'error');
       return;
     }
 
@@ -83,6 +91,7 @@ export const SettingsPage: React.FC = () => {
         organizationName: cleanName,
         currencySymbol: cleanCurrency,
         defaultMonthlyInterestRate: rate,
+        shareValue: sValue,
         memberLoanLimit: limit,
       });
       showToast('Organization settings updated successfully.', 'success');
@@ -243,6 +252,33 @@ export const SettingsPage: React.FC = () => {
                     disabled={!isTreasurer || isSaving}
                     onChange={(e) => setDefaultMonthlyInterestRate(parseFloat(e.target.value) || 0)}
                     data-testid="input-interest-rate"
+                    className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Share Value */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="shareValue"
+                      className="block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+                    >
+                      Value per Share ({currencySymbol})
+                    </label>
+                    <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                      Default: {currencySymbol}2,000
+                    </span>
+                  </div>
+                  <input
+                    id="shareValue"
+                    type="number"
+                    step="100"
+                    min="1"
+                    value={shareValue}
+                    disabled={!isTreasurer || isSaving}
+                    onChange={(e) => setShareValue(parseFloat(e.target.value) || 0)}
+                    data-testid="input-share-value"
                     className="w-full px-3 py-2 text-sm font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                     required
                   />

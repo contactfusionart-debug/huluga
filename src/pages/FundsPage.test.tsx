@@ -527,5 +527,33 @@ describe('Funds Management Feature', () => {
       fireEvent.click(dateHeader);
       expect(dateHeader.textContent).toContain('↓');
     });
+
+    it('converts member contribution amount into shares (e.g. 6000 pesos = 3 shares at 2000/share)', async () => {
+      renderFundsPage(mockTreasurer);
+
+      const recordBtn = await screen.findByTestId('record-fund-entry-button');
+      fireEvent.click(recordBtn);
+
+      const amountInput = screen.getByLabelText(/Amount/i);
+      fireEvent.change(amountInput, { target: { value: '6000' } });
+
+      const preview = screen.getByTestId('share-conversion-preview');
+      expect(preview.textContent).toBe('3 shares');
+
+      const descInput = screen.getByLabelText(/Description/i);
+      fireEvent.change(descInput, { target: { value: '3 shares purchase' } });
+
+      fireEvent.submit(screen.getByTestId('add-fund-form'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('add-fund-form')).toBeNull();
+      });
+
+      const entries = await adapter.getFundEntries();
+      const entry = entries.find((e) => e.description === '3 shares purchase');
+      expect(entry).toBeDefined();
+      expect(entry?.amount).toBe(6000);
+      expect(entry?.sharesCount).toBe(3);
+    });
   });
 });

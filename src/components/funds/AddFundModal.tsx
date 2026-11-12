@@ -4,7 +4,13 @@ import { Button } from '../common/Button';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { toISODateString } from '../../utils/formatters';
+import {
+  toISODateString,
+  DEFAULT_SHARE_VALUE,
+  calculateShares,
+  formatShares,
+  formatCurrency,
+} from '../../utils/formatters';
 import type { FundEntry, FundEntryType } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -21,9 +27,12 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
   defaultType = 'contribution',
   onSuccess,
 }) => {
-  const { members, addFundEntry } = useData();
+  const { members, settings, addFundEntry } = useData();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+
+  const shareValue = settings.shareValue || DEFAULT_SHARE_VALUE;
+  const currency = settings.currencySymbol || '₱';
 
   const [type, setType] = useState<FundEntryType>(defaultType);
   const [adjustmentDirection, setAdjustmentDirection] = useState<'inflow' | 'outflow'>('inflow');
@@ -112,6 +121,7 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
       const newEntry: Omit<FundEntry, 'id'> = {
         type,
         amount: amountNum,
+        sharesCount: type === 'contribution' ? calculateShares(amountNum, shareValue) : undefined,
         direction,
         memberId: type === 'contribution' ? memberId : undefined,
         memberName: type === 'contribution' ? memberName : undefined,
@@ -330,6 +340,55 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({
             )}
           </div>
         </div>
+
+        {/* Share Conversion Preview & Quick Share Buttons (for Contributions) */}
+        {type === 'contribution' && (
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-emerald-900 dark:text-emerald-200">
+                Share Conversion ({formatCurrency(shareValue, currency)} / share)
+              </span>
+              <span
+                className="font-mono font-semibold tabular-nums text-emerald-700 dark:text-emerald-300"
+                data-testid="share-conversion-preview"
+              >
+                {parseFloat(amount) > 0
+                  ? formatShares(calculateShares(parseFloat(amount), shareValue))
+                  : '0 shares'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[1, 2, 3, 5].map((count) => {
+                const presetAmount = count * shareValue;
+                const isSelected = parseFloat(amount) === presetAmount;
+                return (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => {
+                      setAmount(String(presetAmount));
+                      if (errors.amount) {
+                        setErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.amount;
+                          return next;
+                        });
+                      }
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-mono tabular-nums rounded-md border transition-colors',
+                      isSelected
+                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                        : 'border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100/70 dark:border-emerald-800 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-emerald-950/50'
+                    )}
+                  >
+                    {count} {count === 1 ? 'share' : 'shares'} ({formatCurrency(presetAmount, currency)})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Reference Number */}
         <div>

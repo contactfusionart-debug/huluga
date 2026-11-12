@@ -4,7 +4,13 @@ import { useData } from '../../context/DataContext';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../common/Table';
 import { Badge, type BadgeVariant } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  DEFAULT_SHARE_VALUE,
+  calculateShares,
+  formatShares,
+} from '../../utils/formatters';
 import type { FundEntry, FundEntryType } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -35,7 +41,9 @@ export const FundLedgerTable: React.FC<FundLedgerTableProps> = ({
   onRecordClick,
   showRecordButton = false,
 }) => {
-  const { fundEntries } = useData();
+  const { fundEntries, settings } = useData();
+  const shareValue = settings?.shareValue || DEFAULT_SHARE_VALUE;
+  const currency = settings?.currencySymbol || '₱';
   const allEntries = propEntries ?? fundEntries;
 
   const [activeTab, setActiveTab] = useState<LedgerFilterTab>('all');
@@ -244,16 +252,23 @@ export const FundLedgerTable: React.FC<FundLedgerTableProps> = ({
                     </span>
                   </TableCell>
                   <TableCell className="text-right font-mono tabular-nums whitespace-nowrap font-medium">
-                    <span
-                      className={cn(
-                        isInflow
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-rose-600 dark:text-rose-400'
+                    <div className="flex flex-col items-end">
+                      <span
+                        className={cn(
+                          isInflow
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
+                        )}
+                      >
+                        {isInflow ? '+' : '-'}
+                        {formatCurrency(entry.amount, currency)}
+                      </span>
+                      {entry.type === 'contribution' && (
+                        <span className="text-[11px] font-normal text-zinc-500 dark:text-zinc-400">
+                          {formatShares(entry.sharesCount ?? calculateShares(entry.amount, shareValue))}
+                        </span>
                       )}
-                    >
-                      {isInflow ? '+' : '-'}
-                      {formatCurrency(entry.amount)}
-                    </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs whitespace-nowrap">
                     {entry.memberName ? (

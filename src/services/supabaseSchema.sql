@@ -28,6 +28,7 @@ create table if not exists public.fund_entries (
   id uuid primary key default gen_random_uuid(),
   type text not null check (type in ('contribution', 'deposit', 'loan_disbursement', 'loan_repayment', 'expense', 'adjustment')),
   amount numeric(14,2) not null check (amount > 0),
+  shares_count numeric(10,2),
   direction text not null check (direction in ('inflow', 'outflow')),
   member_id uuid references public.profiles(id) on delete set null,
   member_name text,
@@ -92,13 +93,14 @@ create table if not exists public.app_settings (
   organization_name text not null default 'Huluga Community Fund',
   currency_symbol text not null default '₱',
   default_monthly_interest_rate numeric(5,2) not null default 5.00,
+  share_value numeric(14,2) not null default 2000.00,
   member_loan_limit numeric(14,2) default 50000.00,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Seed default application settings
-insert into public.app_settings (id, organization_name, currency_symbol, default_monthly_interest_rate, member_loan_limit)
-values (1, 'Huluga Community Fund', '₱', 5.00, 50000.00)
+insert into public.app_settings (id, organization_name, currency_symbol, default_monthly_interest_rate, share_value, member_loan_limit)
+values (1, 'Huluga Community Fund', '₱', 5.00, 2000.00, 50000.00)
 on conflict (id) do nothing;
 
 -- ==============================================================================

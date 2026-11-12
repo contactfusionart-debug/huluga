@@ -23,6 +23,7 @@ export interface FundEntry {
   id: string;
   type: FundEntryType;
   amount: number;
+  sharesCount?: number;
   direction: 'inflow' | 'outflow';
   memberId?: string;
   memberName?: string;
@@ -82,6 +83,7 @@ export interface AppSettings {
   organizationName: string;
   currencySymbol: string;
   defaultMonthlyInterestRate: number;
+  shareValue?: number;
   memberLoanLimit?: number;
 }
 

@@ -58,6 +58,32 @@ export function formatPercent(rate: number): string {
   })}%`;
 }
 
+export const DEFAULT_SHARE_VALUE = 2000;
+
+/**
+ * Computes the number of shares equivalent to a monetary contribution.
+ * Example: calculateShares(6000, 2000) -> 3
+ */
+export function calculateShares(amount: number, shareValue: number = DEFAULT_SHARE_VALUE): number {
+  if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) return 0;
+  if (typeof shareValue !== 'number' || isNaN(shareValue) || shareValue <= 0) return 0;
+  return Math.round((amount / shareValue) * 100) / 100;
+}
+
+/**
+ * Formats a share count cleanly (e.g. 1 -> "1 share", 3 -> "3 shares", 2.5 -> "2.5 shares").
+ */
+export function formatShares(shares: number): string {
+  if (typeof shares !== 'number' || isNaN(shares) || shares < 0) {
+    shares = 0;
+  }
+  const rounded = Math.round(shares * 100) / 100;
+  const formatted = Number.isInteger(rounded)
+    ? rounded.toLocaleString('en-US')
+    : rounded.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  return `${formatted} ${rounded === 1 ? 'share' : 'shares'}`;
+}
+
 /**
  * Returns a local YYYY-MM-DD string representation of a Date object.
  */

@@ -6,7 +6,12 @@ import { Button } from '../components/common/Button';
 import { FundSummaryStats } from '../components/funds/FundSummaryStats';
 import { FundLedgerTable } from '../components/funds/FundLedgerTable';
 import { AddFundModal } from '../components/funds/AddFundModal';
-import { formatCurrency } from '../utils/formatters';
+import {
+  formatCurrency,
+  DEFAULT_SHARE_VALUE,
+  calculateShares,
+  formatShares,
+} from '../utils/formatters';
 import { cn } from '../utils/cn';
 
 export interface FundsPageProps {
@@ -15,7 +20,9 @@ export interface FundsPageProps {
 
 export const FundsPage: React.FC<FundsPageProps> = ({ className }) => {
   const { currentUser, isTreasurer } = useAuth();
-  const { fundEntries } = useData();
+  const { fundEntries, settings } = useData();
+  const shareValue = settings?.shareValue || DEFAULT_SHARE_VALUE;
+  const currency = settings?.currencySymbol || '₱';
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -35,6 +42,15 @@ export const FundsPage: React.FC<FundsPageProps> = ({ className }) => {
   const myTotalContributed = useMemo(
     () => myContributions.reduce((sum, e) => sum + e.amount, 0),
     [myContributions]
+  );
+
+  const myTotalShares = useMemo(
+    () =>
+      myContributions.reduce(
+        (sum, e) => sum + (e.sharesCount ?? calculateShares(e.amount, shareValue)),
+        0
+      ),
+    [myContributions, shareValue]
   );
 
   return (
@@ -100,7 +116,10 @@ export const FundsPage: React.FC<FundsPageProps> = ({ className }) => {
               Total Contributed
             </span>
             <span className="text-xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-300">
-              {formatCurrency(myTotalContributed)}
+              {formatCurrency(myTotalContributed, currency)}
+            </span>
+            <span className="text-xs font-mono text-emerald-700/80 dark:text-emerald-400 block">
+              {formatShares(myTotalShares)}
             </span>
           </div>
         </div>

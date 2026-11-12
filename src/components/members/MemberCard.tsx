@@ -5,7 +5,13 @@ import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { useData } from '../../context/DataContext';
 import { calculateLoanSummary } from '../../services/interestEngine';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  DEFAULT_SHARE_VALUE,
+  calculateShares,
+  formatShares,
+} from '../../utils/formatters';
 import type { UserProfile } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -45,22 +51,27 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   onInspect,
   className,
 }) => {
-  const { fundEntries, loans } = useData();
+  const { fundEntries, loans, settings } = useData();
+  const shareValue = settings?.shareValue || DEFAULT_SHARE_VALUE;
+  const currency = settings?.currencySymbol || '₱';
 
-  // Compute live capital contribution if not provided
-  const computedContributed = useMemo(() => {
-    if (totalContributed !== undefined) return totalContributed;
-    return fundEntries
-      .filter(
-        (e) =>
-          e.type === 'contribution' &&
-          (e.memberId === member.id ||
-            (e.memberName &&
-              member.fullName &&
-              e.memberName.trim().toLowerCase() === member.fullName.trim().toLowerCase()))
-      )
-      .reduce((sum, e) => sum + (e.amount || 0), 0);
-  }, [fundEntries, member, totalContributed]);
+  // Compute live capital contribution & shares if not provided
+  const { computedContributed, computedShares } = useMemo(() => {
+    const matching = fundEntries.filter(
+      (e) =>
+        e.type === 'contribution' &&
+        (e.memberId === member.id ||
+          (e.memberName &&
+            member.fullName &&
+            e.memberName.trim().toLowerCase() === member.fullName.trim().toLowerCase()))
+    );
+    const amount = matching.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const shares = matching.reduce(
+      (sum, e) => sum + (e.sharesCount ?? calculateShares(e.amount || 0, shareValue)),
+      0
+    );
+    return { computedContributed: amount, computedShares: shares };
+  }, [fundEntries, member, shareValue]);
 
   // Compute live active loan balances if not provided
   const computedLoanMetrics = useMemo(() => {
@@ -172,7 +183,13 @@ export const MemberCard: React.FC<MemberCardProps> = ({
               className="text-sm font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 mt-1 block"
               data-testid={`member-equity-${member.id}`}
             >
-              {formatCurrency(finalContributed)}
+              {formatCurrency(finalContributed, currency)}
+            </span>
+            <span
+              className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 block mt-0.5"
+              data-testid={`member-shares-${member.id}`}
+            >
+              {formatShares(totalContributed !== undefined ? calculateShares(totalContributed, shareValue) : computedShares)}
             </span>
           </div>
 

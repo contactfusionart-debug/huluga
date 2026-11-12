@@ -14,7 +14,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { calculateLoanSummary } from '../services/interestEngine';
-import { formatCurrency, formatDate, formatPercent } from '../utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatPercent,
+  DEFAULT_SHARE_VALUE,
+  calculateShares,
+  formatShares,
+} from '../utils/formatters';
 import { StatCard } from '../components/common/StatCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -28,6 +35,7 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const currency = settings.currencySymbol || '₱';
+  const shareValue = settings.shareValue || DEFAULT_SHARE_VALUE;
 
   // ==========================================
   // Treasurer Metrics
@@ -79,6 +87,7 @@ export const DashboardPage: React.FC = () => {
     if (!userId) {
       return {
         myEquity: 0,
+        myShares: 0,
         myActivePrincipal: 0,
         myUnpaidInterest: 0,
         myPendingCount: 0,
@@ -88,9 +97,12 @@ export const DashboardPage: React.FC = () => {
     }
 
     const myEntries = fundEntries.filter((e) => e.memberId === userId);
-    const myEquity = myEntries
-      .filter((e) => e.type === 'contribution')
-      .reduce((sum, e) => sum + e.amount, 0);
+    const myContributions = myEntries.filter((e) => e.type === 'contribution');
+    const myEquity = myContributions.reduce((sum, e) => sum + e.amount, 0);
+    const myShares = myContributions.reduce(
+      (sum, e) => sum + (e.sharesCount ?? calculateShares(e.amount, shareValue)),
+      0
+    );
 
     const myActiveLoans = loans.filter((l) => l.borrowerId === userId && l.status === 'active');
     const myActivePrincipal = myActiveLoans.reduce(
@@ -113,13 +125,14 @@ export const DashboardPage: React.FC = () => {
 
     return {
       myEquity,
+      myShares,
       myActivePrincipal,
       myUnpaidInterest,
       myPendingCount: myPendingApps.length,
       myActiveLoans,
       myTransactions,
     };
-  }, [currentUser, fundEntries, loans, applications]);
+  }, [currentUser, fundEntries, loans, applications, shareValue]);
 
   return (
     <div className="space-y-8" data-testid="dashboard-page">
@@ -387,7 +400,7 @@ export const DashboardPage: React.FC = () => {
             <StatCard
               title="My Total Contributed Equity"
               value={formatCurrency(memberMetrics.myEquity, currency)}
-              subtitle="Your deposited community capital"
+              subtitle={`${formatShares(memberMetrics.myShares)} (${formatCurrency(shareValue, currency)}/share)`}
               icon={<PiggyBank className="w-4 h-4 text-emerald-600" />}
               data-testid="stat-my-equity"
             />
