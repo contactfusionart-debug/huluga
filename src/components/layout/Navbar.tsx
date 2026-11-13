@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, X, ShieldCheck, LogOut, Receipt } from 'lucide-react';
+import { Menu, X, ShieldCheck, LogOut, Receipt, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
 import { ThemeToggle } from '../common/ThemeToggle';
@@ -9,6 +9,7 @@ export interface NavbarProps {
   onMenuToggle?: () => void;
   isMobileMenuOpen?: boolean;
   onQuickRecordPayment?: () => void;
+  onQuickEnrollMember?: () => void;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onMenuToggle,
   isMobileMenuOpen = false,
   onQuickRecordPayment,
+  onQuickEnrollMember,
   className,
 }) => {
   const { currentUser, isTreasurer, logout } = useAuth();
@@ -65,6 +67,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right: Quick Tools & Current User Info */}
         <div className="flex items-center gap-2.5">
           <ThemeToggle size="sm" />
+          {currentUser && isTreasurer && onQuickEnrollMember && (
+            <button
+              type="button"
+              onClick={onQuickEnrollMember}
+              aria-label="Quick Enroll Member"
+              title="Quick Enroll Member"
+              data-testid="navbar-quick-enroll-member-btn"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-800 dark:text-zinc-100 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 shadow-xs transition-colors cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              <span className="hidden md:inline">Enroll Member</span>
+            </button>
+          )}
           {currentUser && isTreasurer && onQuickRecordPayment && (
             <button
               type="button"
