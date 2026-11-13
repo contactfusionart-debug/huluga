@@ -18,6 +18,7 @@ import { SharesPage } from './pages/SharesPage';
 import { LoansHubPage } from './pages/LoansHubPage';
 import { MembersPage } from './pages/MembersPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { DownloadsPage } from './pages/DownloadsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import type { UserProfile } from './types';
@@ -61,6 +62,7 @@ export function AppRoutes() {
       {/* Protected routes wrapped in AppShell */}
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/downloads" element={<DownloadsPage />} />
         <Route element={<TreasurerOnlyRoute />}>
           <Route path="/shares" element={<SharesPage />} />
           <Route path="/loans" element={<LoansHubPage />} />

@@ -43,18 +43,20 @@ export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
   }, [isMobileMenuOpen]);
 
   return (
-    <div className={cn('min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100', className)}>
+    <div className={cn('min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 print:min-h-0 print:bg-white', className)}>
       {/* Top Navbar */}
-      <Navbar
-        isMobileMenuOpen={isMobileMenuOpen}
-        onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)}
-        onQuickRecordPayment={() => setIsQuickPaymentOpen(true)}
-      />
+      <div className="print:hidden">
+        <Navbar
+          isMobileMenuOpen={isMobileMenuOpen}
+          onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)}
+          onQuickRecordPayment={() => setIsQuickPaymentOpen(true)}
+        />
+      </div>
 
       {/* Main Layout Area */}
       <div className="flex-1 flex w-full">
         {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 min-h-[calc(100vh-4rem)]">
+        <div className="hidden lg:block w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 min-h-[calc(100vh-4rem)] print:hidden">
           <div className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
             <Sidebar />
           </div>
@@ -63,7 +65,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
         {/* Mobile Sidebar Drawer */}
         {isMobileMenuOpen && (
           <div
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-50 lg:hidden print:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation Drawer"
@@ -86,9 +88,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, className }) => {
         {/* Content Container */}
         <main
           id="main-content"
-          className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden"
+          className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden print:p-0 print:overflow-visible"
         >
-          <div className="max-w-7xl mx-auto w-full">
+          <div className="max-w-7xl mx-auto w-full print:max-w-none print:m-0">
             {children}
           </div>
         </main>

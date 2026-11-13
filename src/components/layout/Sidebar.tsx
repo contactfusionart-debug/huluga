@@ -11,6 +11,7 @@ import {
   LogOut,
   Award,
   ChevronRight,
+  FileDown,
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { DataContext } from '../../context/DataContext';
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { name: 'Loans', to: '/loans', icon: HandCoins, isPendingBadge: true, treasurerOnly: true },
   { name: 'Members', to: '/members', icon: Users, treasurerOnly: true },
   { name: 'Analytics', to: '/analytics', icon: BarChart3, treasurerOnly: true },
+  { name: 'Downloads', to: '/downloads', icon: FileDown },
   { name: 'Settings', to: '/settings', icon: Settings, treasurerNotice: true, treasurerOnly: true },
 ];
 
