@@ -161,4 +161,81 @@ describe('dividendEngine - 1-Year Cycle Dividend & Fee Distribution', () => {
     expect(summary.totalShares).toBe(0);
     expect(summary.dividendPerShare).toBe(0);
   });
+
+  it('tracks unpaid loan debt per member for year-end deduction', () => {
+    const settings: AppSettings = {
+      organizationName: 'Huluga',
+      currencySymbol: '₱',
+      defaultMonthlyInterestRate: 5.0,
+      shareValue: 2000,
+      cycleYear: 2026,
+      treasurerFeePercent: 10,
+      customDividendFees: [],
+    };
+
+    const summary = calculateDividendSummary({ members, fundEntries, loans, settings });
+    const juan = summary.memberRows.find((r) => r.memberId === 'user-2')!;
+    const maria = summary.memberRows.find((r) => r.memberId === 'user-1')!;
+
+    // loan-1 belongs to user-2 (Juan) and is active; Maria has no active loans
+    expect(juan.unpaidDebtBalance).toBeGreaterThan(0);
+    expect(maria.unpaidDebtBalance).toBe(0);
+  });
+
+  it('subtracts already-applied year-end debt deduction offsets from co-maker dividend and borrower return', () => {
+    const settings: AppSettings = {
+      organizationName: 'Huluga',
+      currencySymbol: '₱',
+      defaultMonthlyInterestRate: 5.0,
+      shareValue: 2000,
+      cycleYear: 2026,
+      treasurerFeePercent: 10,
+      customDividendFees: [],
+    };
+
+    const entriesWithDeduction: FundEntry[] = [
+      ...fundEntries,
+      {
+        id: 'f-ded-1',
+        type: 'adjustment',
+        amount: 500,
+        direction: 'outflow',
+        memberId: 'user-1',
+        memberName: 'Maria Santos',
+        recordedBy: 'user-1',
+        description: 'Co-maker profit share offset',
+        date: '2026-12-31',
+        referenceNo: 'DIV-DED-2026-COMAKER',
+      },
+      {
+        id: 'f-ded-2',
+        type: 'adjustment',
+        amount: 450,
+        direction: 'outflow',
+        memberId: 'user-2',
+        memberName: 'Juan Dela Cruz',
+        recordedBy: 'user-1',
+        description: 'Borrower year-end share offset',
+        date: '2026-12-31',
+        referenceNo: 'DIV-DED-2026-BORROWER',
+      },
+    ];
+
+    const summary = calculateDividendSummary({
+      members,
+      fundEntries: entriesWithDeduction,
+      loans,
+      settings,
+    });
+
+    const maria = summary.memberRows.find((r) => r.memberId === 'user-1')!;
+    const juan = summary.memberRows.find((r) => r.memberId === 'user-2')!;
+
+    // Maria's dividend was 1350; after 500 COMAKER offset, remaining dividend is 850
+    expect(maria.dividendEarned).toBe(850);
+    expect(maria.totalYearEndReturn).toBe(6850); // 6000 + 850
+
+    // Juan's totalYearEndReturn was 2450; after 450 BORROWER offset, remaining is 2000
+    expect(juan.totalYearEndReturn).toBe(2000);
+  });
 });

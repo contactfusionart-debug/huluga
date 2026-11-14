@@ -137,5 +137,66 @@ describe('Co-Maker Evaluation Engine', () => {
       expect(inactiveEval?.isEligible).toBe(false);
       expect(inactiveEval?.reasons.join(' ')).toContain('active');
     });
+
+    it('enforces a maximum cap of 2 active/pending co-makered loans per member', () => {
+      const twoActiveCoMakerLoans: Loan[] = [
+        ...loans,
+        {
+          id: 'loan-cm-1',
+          borrowerId: 'user-pedro',
+          borrowerName: 'Pedro Penduko',
+          principalAmount: 20000,
+          monthlyInterestRate: 5.0,
+          startDate: '2026-10-01',
+          status: 'active',
+          principalPaid: 0,
+          interestPaid: 0,
+          coMakerId: goodMember.id,
+          coMakerName: goodMember.fullName,
+        },
+      ];
+
+      // 1 active co-makered loan -> still eligible (1 / 2)
+      const withOne = getEligibleCoMakers(
+        [applicant, goodMember],
+        applicant.id,
+        fundEntries,
+        twoActiveCoMakerLoans
+      );
+      const mariaWithOne = withOne.find((r) => r.member.id === goodMember.id);
+      expect(mariaWithOne?.isEligible).toBe(true);
+      expect(mariaWithOne?.activeCoMakerCount).toBe(1);
+
+      // Add a pending co-maker application -> reaches cap of 2 -> ineligible
+      const pendingApps: any[] = [
+        {
+          id: 'app-cm-2',
+          borrowerId: 'user-pedro',
+          borrowerName: 'Pedro Penduko',
+          requestedAmount: 25000,
+          purpose: 'Inventory',
+          monthlyInterestRate: 5.0,
+          status: 'pending',
+          appliedDate: '2026-11-10',
+          coMakerRequired: true,
+          coMakerId: goodMember.id,
+          coMakerName: goodMember.fullName,
+          coMakerStatus: 'pending',
+        },
+      ];
+
+      const withTwo = getEligibleCoMakers(
+        [applicant, goodMember],
+        applicant.id,
+        fundEntries,
+        twoActiveCoMakerLoans,
+        new Date(),
+        pendingApps
+      );
+      const mariaWithTwo = withTwo.find((r) => r.member.id === goodMember.id);
+      expect(mariaWithTwo?.isEligible).toBe(false);
+      expect(mariaWithTwo?.activeCoMakerCount).toBe(2);
+      expect(mariaWithTwo?.reasons.join(' ')).toContain('maximum co-maker limit (2 loans)');
+    });
   });
 });

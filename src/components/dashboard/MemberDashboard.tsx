@@ -29,6 +29,7 @@ import { StatCard } from '../common/StatCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../common/Card';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
+import { PageHeader } from '../common/PageHeader';
 import { EmptyState } from '../common/EmptyState';
 import { Modal } from '../common/Modal';
 import { LoanApplicationModal } from '../loans/LoanApplicationModal';
@@ -55,12 +56,22 @@ function matchesUser(
 
 export const MemberDashboard: React.FC = () => {
   const { currentUser, changePassword } = useAuth();
-  const { fundEntries, loans, applications, members, settings, updateCoMakerStatus } = useData();
+  const {
+    fundEntries,
+    loans,
+    applications,
+    members,
+    settings,
+    updateCoMakerStatus,
+    updateApplicationStatus,
+  } = useData();
   const { showToast } = useToast();
 
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [selectedCoMakerApp, setSelectedCoMakerApp] = useState<LoanApplication | null>(null);
+  const [appToCancel, setAppToCancel] = useState<LoanApplication | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -182,71 +193,87 @@ export const MemberDashboard: React.FC = () => {
     }
   };
 
+  const handleConfirmCancelApplication = async () => {
+    if (!appToCancel) return;
+    setIsCancelling(true);
+    try {
+      await updateApplicationStatus(
+        appToCancel.id,
+        'cancelled',
+        'Cancelled by applicant'
+      );
+      showToast('Loan application cancelled.', 'info');
+      setAppToCancel(null);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to cancel loan application.', 'error');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   return (
     <div className="space-y-5 sm:space-y-8" data-testid="member-dashboard">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Welcome, {memberProfile?.fullName || 'Member'}
-            </h1>
-            <Badge variant="emerald" size="sm" dot className="font-semibold shrink-0">
-              Member
-            </Badge>
+      <PageHeader
+        title={`Welcome, ${memberProfile?.fullName || 'Member'}`}
+        description="View your share capital, active loans, credit limit, and transaction history."
+        badge={
+          <Badge variant="emerald" size="sm" dot className="font-semibold shrink-0">
+            Member
+          </Badge>
+        }
+        actions={
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setNewPassword('');
+                setConfirmPassword('');
+                setPasswordError(null);
+                setIsPasswordModalOpen(true);
+              }}
+              icon={<KeyRound className="w-3.5 h-3.5" />}
+              className="w-full sm:w-auto justify-center min-h-[40px] sm:min-h-0"
+              data-testid="member-change-password-btn"
+            >
+              Change Password
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsApplyModalOpen(true)}
+              icon={<Plus className="w-3.5 h-3.5" />}
+              className="w-full sm:w-auto justify-center min-h-[40px] sm:min-h-0"
+              data-testid="member-apply-loan-btn"
+            >
+              Apply for Loan
+            </Button>
           </div>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            View your share capital, active loans, credit limit, and transaction history.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setNewPassword('');
-              setConfirmPassword('');
-              setPasswordError(null);
-              setIsPasswordModalOpen(true);
-            }}
-            icon={<KeyRound className="w-3.5 h-3.5" />}
-            className="w-full sm:w-auto justify-center min-h-[40px] sm:min-h-0"
-            data-testid="member-change-password-btn"
-          >
-            Change Password
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsApplyModalOpen(true)}
-            icon={<Plus className="w-3.5 h-3.5" />}
-            className="w-full sm:w-auto justify-center min-h-[40px] sm:min-h-0"
-            data-testid="member-apply-loan-btn"
-          >
-            Apply for Loan
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Pending Co-Maker Endorsement Requests */}
       {pendingCoMakerRequests.length > 0 && (
         <div
-          className="rounded-xl border border-amber-300 dark:border-amber-700/70 bg-gradient-to-r from-amber-50 to-orange-50/70 dark:from-amber-950/40 dark:to-orange-950/30 p-4 sm:p-5 shadow-sm space-y-3"
+          className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 shadow-subtle space-y-3"
           data-testid="co-maker-requests-banner"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-600 dark:text-zinc-300">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Co-Maker Endorsement Requests ({pendingCoMakerRequests.length})
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  A member has nominated you as a co-maker/guarantor for their loan application.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-amber-950 dark:text-amber-100">
-                Action Required: Co-Maker Endorsement Requests ({pendingCoMakerRequests.length})
-              </h3>
-              <p className="text-xs text-amber-800 dark:text-amber-300/90">
-                A member has nominated you as a co-maker/guarantor for their loan application.
-              </p>
-            </div>
+            <Badge variant="amber" size="sm">Action Required</Badge>
           </div>
 
           <div className="divide-y divide-amber-200/60 dark:divide-amber-800/60">
@@ -325,7 +352,7 @@ export const MemberDashboard: React.FC = () => {
                 ? `Limit: ${formatCurrency(metrics.creditSummary.creditLimit, currency)} · Pool: ${formatCurrency(metrics.creditSummary.availableFund, currency)}`
                 : `Pool Available: ${formatCurrency(metrics.creditSummary.availableFund, currency)}`
           }
-          icon={<ShieldCheck className="w-4 h-4 text-indigo-600" />}
+          icon={<ShieldCheck className="w-4 h-4" />}
           data-testid="member-stat-available-credit"
         />
 
@@ -466,7 +493,7 @@ export const MemberDashboard: React.FC = () => {
                           Applied {formatDate(app.appliedDate)}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2.5 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
                           {formatCurrency(app.requestedAmount, currency)}
                         </span>
@@ -476,6 +503,8 @@ export const MemberDashboard: React.FC = () => {
                               ? 'emerald'
                               : app.status === 'rejected'
                               ? 'rose'
+                              : app.status === 'cancelled'
+                              ? 'zinc'
                               : 'amber'
                           }
                           size="sm"
@@ -483,6 +512,17 @@ export const MemberDashboard: React.FC = () => {
                         >
                           {app.status}
                         </Badge>
+                        {app.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 px-2 py-1 h-auto text-xs"
+                            onClick={() => setAppToCancel(app)}
+                            data-testid={`member-cancel-app-${app.id}`}
+                          >
+                            Cancel
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -654,6 +694,47 @@ export const MemberDashboard: React.FC = () => {
           showToast('Co-maker request declined.', 'info');
         }}
       />
+      {/* Cancel Loan Application Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(appToCancel)}
+        onClose={() => !isCancelling && setAppToCancel(null)}
+        title="Cancel Loan Application"
+        description="Are you sure you want to cancel this pending loan request? This action cannot be undone."
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAppToCancel(null)}
+              disabled={isCancelling}
+            >
+              Keep Application
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleConfirmCancelApplication}
+              isLoading={isCancelling}
+              data-testid="confirm-cancel-loan-app-btn"
+            >
+              Cancel Application
+            </Button>
+          </div>
+        }
+      >
+        {appToCancel && (
+          <div className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 space-y-1 text-sm">
+            <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+              {appToCancel.purpose}
+            </div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
+              {formatCurrency(appToCancel.requestedAmount, currency)} &bull; Applied{' '}
+              {formatDate(appToCancel.appliedDate)}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

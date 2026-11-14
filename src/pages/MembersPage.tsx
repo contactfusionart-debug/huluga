@@ -178,17 +178,12 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
   return (
     <div className={cn('space-y-6', className)} data-testid="members-page">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400">
-              <Users className="w-5 h-5" aria-hidden="true" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Member Directory
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Member Directory
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             {isTreasurer
               ? 'View registered members, track contributed capital equity, monitor borrowing status, and manage administrative roles.'
               : 'Explore the Huluga community member roster, collective equity contributions, and borrowing history.'}
@@ -197,7 +192,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ className }) => {
 
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 select-none">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
             <span className="font-mono tabular-nums font-medium">{totalMembers} Members Enrolled</span>
           </div>
           <Button

@@ -23,6 +23,7 @@ import { supabaseAdapter, isSupabaseConfigured } from '../services/supabaseAdapt
 import { AuthContext } from './AuthContext';
 import { generateMemberCredentials, formatCurrency } from '../utils/formatters';
 import { getMemberCreditSummary } from '../utils/creditLimit';
+import { getEligibleCoMakers, MAX_CO_MAKER_LOANS } from '../utils/coMaker';
 
 export type DataSourceType = 'local' | 'supabase';
 export const DATA_SOURCE_STORAGE_KEY = 'huluga_data_source';
@@ -226,6 +227,24 @@ export const DataProvider: React.FC<DataProviderProps> = ({
           );
         }
 
+        if (app.coMakerRequired && app.coMakerId) {
+          const coMakerEligibility = getEligibleCoMakers(
+            members,
+            app.borrowerId,
+            fundEntries,
+            loans,
+            new Date(),
+            applications,
+            MAX_CO_MAKER_LOANS
+          ).find((c) => c.member.id === app.coMakerId);
+          if (coMakerEligibility && !coMakerEligibility.isEligible) {
+            throw new Error(
+              coMakerEligibility.reasons[0] ||
+                `Nominated co-maker is not eligible (maximum ${MAX_CO_MAKER_LOANS} co-makered loans).`
+            );
+          }
+        }
+
         const result = await adapterRef.current.createLoanApplication(app);
         await refreshData();
         return result;
@@ -295,7 +314,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [applications, members, loans, settings.memberLoanLimit, settings.currencySymbol, currentUser, refreshData]
+    [applications, members, loans, fundEntries, settings, currentUser, refreshData]
   );
 
   const updateCoMakerStatus = useCallback(
@@ -306,6 +325,27 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     ): Promise<LoanApplication> => {
       setError(null);
       try {
+        if (coMakerStatus === 'accepted') {
+          const targetApp = applications.find((a) => a.id === id);
+          if (targetApp?.coMakerId) {
+            const otherApps = applications.filter((a) => a.id !== id);
+            const coMakerCheck = getEligibleCoMakers(
+              members,
+              targetApp.borrowerId,
+              fundEntries,
+              loans,
+              new Date(),
+              otherApps,
+              MAX_CO_MAKER_LOANS
+            ).find((c) => c.member.id === targetApp.coMakerId);
+            if (coMakerCheck && coMakerCheck.activeCoMakerCount >= MAX_CO_MAKER_LOANS) {
+              throw new Error(
+                `Cannot accept: Co-maker has already reached the maximum limit of ${MAX_CO_MAKER_LOANS} active/pending co-makered loans.`
+              );
+            }
+          }
+        }
+
         if (adapterRef.current.updateCoMakerStatus) {
           const result = await adapterRef.current.updateCoMakerStatus(id, coMakerStatus, notes);
           await refreshData();
@@ -329,7 +369,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [applications, refreshData]
+    [applications, members, fundEntries, loans, refreshData]
   );
 
   const disburseLoan = useCallback(
@@ -339,6 +379,35 @@ export const DataProvider: React.FC<DataProviderProps> = ({
     ): Promise<Loan> => {
       setError(null);
       try {
+        const targetApp = applications.find((a) => a.id === applicationId);
+        if (targetApp) {
+          const borrower = members.find((m) => m.id === targetApp.borrowerId);
+          const otherApps = applications.filter((a) => a.id !== applicationId);
+          const creditSummary = getMemberCreditSummary(
+            borrower,
+            loans,
+            otherApps,
+            settings.memberLoanLimit,
+            { fundEntries, settings }
+          );
+          if (creditSummary.blockReason) {
+            throw new Error(`Cannot disburse: ${creditSummary.blockReason}`);
+          }
+          if (
+            Number.isFinite(creditSummary.maxLoanableAmount) &&
+            targetApp.requestedAmount > creditSummary.maxLoanableAmount
+          ) {
+            if (creditSummary.availableFund < creditSummary.availableCredit) {
+              throw new Error(
+                `Cannot disburse: requested amount exceeds available treasury fund (${formatCurrency(creditSummary.availableFund, settings.currencySymbol)}).`
+              );
+            }
+            throw new Error(
+              `Cannot disburse: requested amount exceeds available credit limit (${formatCurrency(creditSummary.availableCredit, settings.currencySymbol)}).`
+            );
+          }
+        }
+
         const recordedBy =
           currentUser?.fullName || currentUser?.username || 'Maria Santos (Treasurer)';
         const result = await adapterRef.current.disburseLoan(applicationId, recordedBy, options);
@@ -350,7 +419,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({
         throw err;
       }
     },
-    [currentUser, refreshData]
+    [applications, members, loans, fundEntries, settings, currentUser, refreshData]
   );
 
   const recordPayment = useCallback(

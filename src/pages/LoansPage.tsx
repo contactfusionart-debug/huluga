@@ -108,17 +108,12 @@ export const LoansPage: React.FC<LoansPageProps> = ({ className }) => {
   return (
     <div className={cn('space-y-6', className)} data-testid="loans-page">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400">
-              <HandCoins className="w-5 h-5" aria-hidden="true" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Loan Management &amp; Repayment Ledger
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Loan Management &amp; Repayment Ledger
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             Manage member loan portfolios with automatic {rateLabel} monthly interest calculations and waterfall repayment tracking.
           </p>
         </div>

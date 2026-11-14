@@ -7,6 +7,7 @@ import type {
   MemberDividendRow,
 } from '../types';
 import { DEFAULT_SHARE_VALUE, calculateShares } from '../utils/formatters';
+import { calculateLoanSummary } from './interestEngine';
 
 function roundCents(val: number): number {
   return Math.round(val * 100) / 100;
@@ -96,9 +97,52 @@ export function calculateDividendSummary({
     ({ member, capitalContributed, shares }) => {
       const ownershipPercent =
         totalShares > 0 ? roundCents((shares / totalShares) * 100) : 0;
-      const dividendEarned =
+      const rawDividendEarned =
         totalShares > 0 ? roundCents(netDistributableRevenue * (shares / totalShares)) : 0;
-      const totalYearEndReturn = roundCents(capitalContributed + dividendEarned);
+
+      // Subtract any already-applied year-end debt deductions for this cycleYear
+      const dedPrefix = `DIV-DED-${cycleYear}`;
+      const memberDeductions = fundEntries.filter(
+        (e) =>
+          e.type === 'adjustment' &&
+          e.direction === 'outflow' &&
+          e.referenceNo?.startsWith(dedPrefix) &&
+          (e.memberId === member.id ||
+            (e.memberName &&
+              member.fullName &&
+              e.memberName.trim().toLowerCase() === member.fullName.trim().toLowerCase()))
+      );
+      const coMakerDeducted = roundCents(
+        memberDeductions
+          .filter((e) => e.referenceNo?.endsWith('-COMAKER'))
+          .reduce((sum, e) => sum + (e.amount || 0), 0)
+      );
+      const borrowerDeducted = roundCents(
+        memberDeductions
+          .filter((e) => !e.referenceNo?.endsWith('-COMAKER'))
+          .reduce((sum, e) => sum + (e.amount || 0), 0)
+      );
+
+      const dividendEarned = roundCents(Math.max(0, rawDividendEarned - coMakerDeducted));
+      const totalYearEndReturn = roundCents(
+        Math.max(0, capitalContributed + dividendEarned - borrowerDeducted)
+      );
+
+      const unpaidDebtBalance = roundCents(
+        loans
+          .filter(
+            (l) =>
+              l.status !== 'paid' &&
+              (l.borrowerId === member.id ||
+                (l.borrowerName &&
+                  member.fullName &&
+                  l.borrowerName.trim().toLowerCase() === member.fullName.trim().toLowerCase()))
+          )
+          .reduce((sum, l) => {
+            const summary = calculateLoanSummary(l);
+            return sum + summary.remainingPrincipal + summary.unpaidInterest;
+          }, 0)
+      );
 
       return {
         memberId: member.id,
@@ -109,6 +153,7 @@ export function calculateDividendSummary({
         ownershipPercent,
         dividendEarned,
         totalYearEndReturn,
+        unpaidDebtBalance,
       };
     }
   );

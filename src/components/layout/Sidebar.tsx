@@ -30,6 +30,7 @@ interface NavItemConfig {
   to: string;
   icon: React.ComponentType<{ className?: string }>;
   isPendingBadge?: boolean;
+  isCoMakerBadge?: boolean;
   treasurerNotice?: boolean;
   treasurerOnly?: boolean;
 }
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { name: 'Home', to: '/', icon: LayoutDashboard },
   { name: 'Shares', to: '/shares', icon: Wallet, treasurerOnly: true },
   { name: 'Loans', to: '/loans', icon: HandCoins, isPendingBadge: true, treasurerOnly: true },
+  { name: 'Co-Maker', to: '/co-maker', icon: ShieldCheck, isCoMakerBadge: true },
   { name: 'Members', to: '/members', icon: Users, treasurerOnly: true },
   { name: 'Analytics', to: '/analytics', icon: BarChart3, treasurerOnly: true },
   { name: 'Downloads', to: '/downloads', icon: FileDown },
@@ -57,6 +59,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
   const applications = data?.applications ?? [];
   const defaultRate = data?.settings?.defaultMonthlyInterestRate ?? 5.0;
   const pendingCount = applications.filter((a) => a.status === 'pending').length;
+  const currentUser = auth?.currentUser;
+  const pendingCoMakerCount = currentUser
+    ? applications.filter(
+        (a) =>
+          a.status === 'pending' &&
+          a.coMakerRequired &&
+          a.coMakerStatus === 'pending' &&
+          (a.coMakerId === currentUser.id ||
+            (currentUser.fullName &&
+              a.coMakerName?.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase()))
+      ).length
+    : 0;
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -131,6 +145,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, className }) => {
                         title={`${pendingCount} pending loan application${pendingCount > 1 ? 's' : ''}`}
                       >
                         {pendingCount}
+                      </Badge>
+                    )}
+
+                    {item.isCoMakerBadge && pendingCoMakerCount > 0 && (
+                      <Badge
+                        variant="amber"
+                        size="sm"
+                        dot
+                        className="font-mono tabular-nums font-semibold"
+                        title={`${pendingCoMakerCount} pending co-maker request${pendingCoMakerCount > 1 ? 's' : ''}`}
+                      >
+                        {pendingCoMakerCount}
                       </Badge>
                     )}
 

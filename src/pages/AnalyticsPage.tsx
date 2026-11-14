@@ -320,7 +320,7 @@ export const AnalyticsPage: React.FC = () => {
           title="Active Loan Exposure"
           value={formatCurrency(metrics.activePrincipalBalance, currency)}
           subtitle={`${metrics.activeLoansCount} active borrowers`}
-          icon={<Layers className="w-4 h-4 text-indigo-600" />}
+          icon={<Layers className="w-4 h-4" />}
           data-testid="analytics-stat-exposure"
         />
 
@@ -328,7 +328,7 @@ export const AnalyticsPage: React.FC = () => {
           title="Interest Earned (Gross)"
           value={formatCurrency(metrics.totalInterestEarned, currency)}
           subtitle={`${metrics.returnOnCapitalPercent}% yield on contributed equity`}
-          icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+          icon={<TrendingUp className="w-4 h-4" />}
           data-testid="analytics-stat-interest"
         />
 
@@ -423,7 +423,7 @@ export const AnalyticsPage: React.FC = () => {
         <Card data-testid="analytics-credit-card">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <PieChart className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
               <CardTitle>Member Credit Standing &amp; Risk</CardTitle>
             </div>
             <CardDescription>
@@ -432,16 +432,16 @@ export const AnalyticsPage: React.FC = () => {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20">
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40">
               <div>
-                <span className="text-xs uppercase font-semibold tracking-wider text-indigo-700 dark:text-indigo-300 block">
+                <span className="text-xs uppercase font-semibold tracking-wider text-zinc-500 dark:text-zinc-400 block">
                   Average Community Score
                 </span>
                 <span className="text-2xl font-bold font-mono text-zinc-900 dark:text-zinc-100">
                   {metrics.avgCreditScore} <span className="text-xs text-zinc-400 font-sans">/ 850 pts</span>
                 </span>
               </div>
-              <Badge variant="indigo" size="md">
+              <Badge variant="zinc" size="md">
                 {metrics.avgCreditScore >= 750 ? 'Excellent' : metrics.avgCreditScore >= 670 ? 'Good' : 'Fair'}
               </Badge>
             </div>

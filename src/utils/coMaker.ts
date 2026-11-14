@@ -1,11 +1,14 @@
 import { calculateLoanSummary } from '../services/interestEngine';
-import type { FundEntry, Loan, UserProfile } from '../types';
+import type { FundEntry, Loan, LoanApplication, UserProfile } from '../types';
+
+export const MAX_CO_MAKER_LOANS = 2;
 
 export interface CoMakerEligibility {
   member: UserProfile;
   isEligible: boolean;
   paidUpCapital: number;
   hasOverdueLoans: boolean;
+  activeCoMakerCount: number;
   reasons: string[];
 }
 
@@ -51,7 +54,9 @@ export function getEligibleCoMakers(
   applicantId: string,
   fundEntries: FundEntry[] = [],
   loans: Loan[] = [],
-  asOfDate: Date = new Date()
+  asOfDate: Date = new Date(),
+  applications: LoanApplication[] = [],
+  maxCoMakerLoans: number = MAX_CO_MAKER_LOANS
 ): CoMakerEligibility[] {
   return allMembers.map((member) => {
     const reasons: string[] = [];
@@ -66,10 +71,11 @@ export function getEligibleCoMakers(
       reasons.push('Member account is not active.');
     }
 
-    // 3. Paid-up share capital
+    // 3. Paid-up share capital (inflow contributions minus any contribution outflows)
     const paidUpCapital = fundEntries.reduce((sum, entry) => {
       if (entry.type === 'contribution' && matchesMember(member, entry.memberId, entry.memberName)) {
-        return sum + (Number(entry.amount) || 0);
+        const amt = Number(entry.amount) || 0;
+        return entry.direction === 'outflow' ? sum - amt : sum + amt;
       }
       return sum;
     }, 0);
@@ -100,6 +106,25 @@ export function getEligibleCoMakers(
       reasons.push('Member has active overdue loan interest.');
     }
 
+    // 5. Co-maker cap (max 2 active/pending co-makered loans)
+    const activeCoMakerLoanCount = loans.filter(
+      (loan) =>
+        loan.status !== 'paid' &&
+        matchesMember(member, loan.coMakerId, loan.coMakerName)
+    ).length;
+
+    const pendingCoMakerAppCount = applications.filter(
+      (app) =>
+        (app.status === 'pending' || app.status === 'approved') &&
+        app.coMakerStatus !== 'declined' &&
+        matchesMember(member, app.coMakerId, app.coMakerName)
+    ).length;
+
+    const activeCoMakerCount = activeCoMakerLoanCount + pendingCoMakerAppCount;
+    if (activeCoMakerCount >= maxCoMakerLoans) {
+      reasons.push(`Member has reached the maximum co-maker limit (${maxCoMakerLoans} loans).`);
+    }
+
     const isEligible = reasons.length === 0;
 
     return {
@@ -107,6 +132,7 @@ export function getEligibleCoMakers(
       isEligible,
       paidUpCapital,
       hasOverdueLoans,
+      activeCoMakerCount,
       reasons,
     };
   });

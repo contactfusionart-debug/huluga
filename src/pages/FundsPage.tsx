@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Wallet } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '../components/common/Button';
+import { PageHeader } from '../components/common/PageHeader';
 import { FundSummaryStats } from '../components/funds/FundSummaryStats';
 import { FundLedgerTable } from '../components/funds/FundLedgerTable';
 import { AddFundModal } from '../components/funds/AddFundModal';
@@ -16,31 +17,21 @@ export const FundsPage: React.FC<FundsPageProps> = ({ className }) => {
   return (
     <div className={cn('space-y-6', className)} data-testid="funds-page">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400">
-              <Wallet className="w-5 h-5" aria-hidden="true" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Fund Management &amp; Treasury
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Manage member capital contributions, cash inflows/outflows, and monitor liquid reserves.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => setIsAddModalOpen(true)}
-          icon={<Plus className="w-4 h-4" />}
-          data-testid="record-fund-entry-button"
-        >
-          Record Fund Entry
-        </Button>
-      </div>
+      <PageHeader
+        title="Fund Management & Treasury"
+        description="Manage member capital contributions, cash inflows/outflows, and monitor liquid reserves."
+        actions={
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => setIsAddModalOpen(true)}
+            icon={<Plus className="w-4 h-4" />}
+            data-testid="record-fund-entry-button"
+          >
+            Record Fund Entry
+          </Button>
+        }
+      />
 
       {/* Summary Metrics Row */}
       <section aria-labelledby="funds-summary-heading">

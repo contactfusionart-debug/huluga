@@ -145,7 +145,7 @@ export const DashboardPage: React.FC = () => {
               title="Total Unpaid Accrued Interest"
               value={formatCurrency(treasurerMetrics.totalUnpaidAccruedInterest, currency)}
               subtitle={`Accruing at ${formatPercent(settings.defaultMonthlyInterestRate)}/mo`}
-              icon={<Percent className="w-4 h-4 text-indigo-600" />}
+              icon={<Percent className="w-4 h-4" />}
               data-testid="stat-unpaid-interest"
             />
 
@@ -155,7 +155,7 @@ export const DashboardPage: React.FC = () => {
                 value={treasurerMetrics.pendingAppsCount}
                 subtitle="Awaiting treasurer review"
                 badge={treasurerMetrics.pendingAppsCount > 0 ? 'Action Required' : undefined}
-                icon={<ClipboardList className="w-4 h-4 text-amber-600" />}
+                icon={<ClipboardList className="w-4 h-4" />}
                 className="group-hover:border-zinc-400 dark:group-hover:border-zinc-700 transition-all cursor-pointer"
                 data-testid="stat-pending-applications"
               />

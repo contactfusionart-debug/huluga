@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  ClipboardList,
   Plus,
   Clock,
   CheckCircle2,
@@ -71,17 +70,12 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
   return (
     <div className={cn('space-y-6', className)} data-testid="applications-page">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400">
-              <ClipboardList className="w-5 h-5" aria-hidden="true" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Loan Applications &amp; Member Portal
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Loan Applications &amp; Member Portal
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             {isTreasurer
               ? 'Review pending loan requests, evaluate member equity, and approve or disburse community loans.'
               : `Submit loan applications with live ${rateLabel} monthly interest previews and track approval progress in real-time.`}
@@ -125,7 +119,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
             subtitle="Ready for disbursement"
             change={metrics.approved > 0 ? 'Ready to Disburse' : 'None Ready'}
             changeType={metrics.approved > 0 ? 'positive' : 'neutral'}
-            icon={<CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+            icon={<CheckCircle2 className="w-4 h-4" />}
             data-testid="stat-approved"
           />
 
@@ -133,7 +127,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
             title="Total Disbursed"
             value={metrics.disbursed}
             subtitle={`Actively yielding ${rateLabel}/mo`}
-            icon={<Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+            icon={<Coins className="w-4 h-4" />}
             data-testid="stat-disbursed"
           />
 
@@ -141,7 +135,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
             title="Total Rejected"
             value={metrics.rejected}
             subtitle="Declined or cancelled"
-            icon={<XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />}
+            icon={<XCircle className="w-4 h-4" />}
             data-testid="stat-rejected"
           />
         </div>
@@ -150,7 +144,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ className })
       {/* Community Lending Policy Banner */}
       <div className="rounded-xl border border-zinc-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-subtle">
         <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 shrink-0">
+          <div className="p-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-600 dark:text-zinc-300 shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div className="space-y-0.5">

@@ -10,6 +10,28 @@ import { toISODateString } from '../utils/formatters';
 
 export const ACTIVE_USER_STORAGE_KEY = 'huluga_active_user';
 
+function sanitizeUserForSession(user: UserProfile): UserProfile {
+  const { generatedPassword: _omitted, ...safeUser } = user;
+  return safeUser;
+}
+
+function persistActiveUser(user: UserProfile | null): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (!user) {
+        window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, 'none');
+      } else {
+        window.localStorage.setItem(
+          ACTIVE_USER_STORAGE_KEY,
+          JSON.stringify(sanitizeUserForSession(user))
+        );
+      }
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export interface AuthContextValue {
   currentUser: UserProfile | null;
   isAuthenticated: boolean;
@@ -39,7 +61,7 @@ function getInitialUser(): UserProfile | null {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === 'object' && parsed.id && parsed.role) {
-          return parsed as UserProfile;
+          return sanitizeUserForSession(parsed as UserProfile);
         }
       }
     }
@@ -54,11 +76,10 @@ function getInitialUser(): UserProfile | null {
 
   // Default to Maria Santos (Treasurer) in local/test mode
   const defaultUser = INITIAL_PROFILES[0];
-  try {
-    if (typeof window !== 'undefined' && window.localStorage && defaultUser) {
-      window.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(defaultUser));
-    }
-  } catch {}
+  if (defaultUser) {
+    persistActiveUser(defaultUser);
+    return sanitizeUserForSession(defaultUser);
+  }
   return defaultUser;
 }
 

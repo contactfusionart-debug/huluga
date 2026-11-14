@@ -104,8 +104,15 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
   }, [parsedAmount, coMakerThreshold]);
 
   const eligibleCoMakers = useMemo(() => {
-    return getEligibleCoMakers(members, selectedBorrower?.id || borrowerId, fundEntries, loans);
-  }, [members, selectedBorrower, borrowerId, fundEntries, loans]);
+    return getEligibleCoMakers(
+      members,
+      selectedBorrower?.id || borrowerId,
+      fundEntries,
+      loans,
+      new Date(),
+      applications
+    );
+  }, [members, selectedBorrower, borrowerId, fundEntries, loans, applications]);
 
   // Field validation
   const validate = (): boolean => {
@@ -599,7 +606,7 @@ export const LoanApplicationModal: React.FC<LoanApplicationModalProps> = ({
             <p>1. Fixed monthly interest accrues at {formatPercent(defaultMonthlyRate)} of the outstanding principal balance per cycle.</p>
             <p>2. Repayments exceeding monthly interest reduce principal, immediately lowering subsequent interest charges.</p>
             <p>3. Borrowers agree to settle monthly interest on or before due date. Unpaid interest impacts member credit rating.</p>
-            <p>4. Cooperative reserves the right to hold share capital as security against defaulted loans.</p>
+            <p>4. Cooperative reserves the right to deduct unpaid defaulted balances from the borrower&apos;s share at cycle end (co-maker&apos;s share capital is excluded; only the co-maker&apos;s dividend profit share applies).</p>
           </div>
 
           <div className="space-y-2.5 pt-1">

@@ -190,7 +190,7 @@ export const CoMakerConsentModal: React.FC<CoMakerConsentModalProps> = ({
                   1. You agree to assume joint and solidary liability with {application.borrowerName} for the full repayment of principal and accrued monthly interest.
                 </p>
                 <p>
-                  2. In the event of primary borrower delinquency or default, the cooperative reserves the right to hold and offset your share capital equity to satisfy unpaid balances.
+                  2. In the event of primary borrower delinquency or default at the end of the cycle, the cooperative reserves the right to deduct unpaid balances from your year-end dividend (profit share) only; your paid-up share capital equity will not be included or deducted.
                 </p>
                 <p>
                   3. Your endorsement enables this high-value loan to proceed to Treasurer review and disbursement.

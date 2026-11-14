@@ -75,9 +75,9 @@ export function calculateCreditScore(
       memberLoans.some((l) => l.id === p.loanId)
   );
 
-  // Capital & Shares from fund entries
+  // Capital & Shares from paid-up fund entries
   let paidCapital = 0;
-  let sharesCount = member.committedShares || 0;
+  let sharesCount = 0;
   fundEntries.forEach((e) => {
     const isMember =
       e.memberId === member.id ||
@@ -120,10 +120,10 @@ export function calculateCreditScore(
     (now.getFullYear() - joinedDate.getFullYear()) * 12 + (now.getMonth() - joinedDate.getMonth())
   );
 
-  // Effective credit limit (custom override, or 2.5x capital, or default 30k)
+  // Effective credit limit (custom override, or 2.0x paid capital matching creditLimit.ts)
   const effectiveLimit = member.creditLimit && member.creditLimit > 0
     ? member.creditLimit
-    : Math.max(30000, paidCapital * 2.5);
+    : Math.max(30000, paidCapital * 2.0);
 
   const totalExposure = totalActivePrincipal + totalUnpaidInterest;
   const creditUtilizationPercent = effectiveLimit > 0

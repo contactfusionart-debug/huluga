@@ -10,7 +10,8 @@ import type {
 } from '../types';
 import type { DatabaseAdapter } from './databaseAdapter';
 import { getInitialMockData } from './mockData';
-import { calculateLoanSummary } from './interestEngine';
+import { calculateLoanSummary, parseLocalDate } from './interestEngine';
+import { toISODateString } from '../utils/formatters';
 
 export const STORAGE_KEYS = {
   PROFILES: 'huluga_profiles',
@@ -157,12 +158,15 @@ export class LocalStorageAdapter implements DatabaseAdapter {
   async createLoanApplication(
     app: Omit<LoanApplication, 'id' | 'status' | 'appliedDate'>
   ): Promise<LoanApplication> {
+    if (!Number.isFinite(app.requestedAmount) || app.requestedAmount <= 0) {
+      throw new Error('Requested loan amount must be greater than 0.');
+    }
     const apps = await this.getLoanApplications();
     const newApp: LoanApplication = {
       ...app,
       id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       status: 'pending',
-      appliedDate: new Date().toISOString().split('T')[0],
+      appliedDate: toISODateString(new Date()),
     };
     apps.push(newApp);
     this.storage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
@@ -237,12 +241,15 @@ export class LocalStorageAdapter implements DatabaseAdapter {
     if (app.status !== 'approved' && app.status !== 'pending') {
       throw new Error(`Application cannot be disbursed in status: "${app.status}"`);
     }
+    if (app.coMakerRequired && app.coMakerStatus !== 'accepted') {
+      throw new Error('Nominated co-maker must accept the terms and conditions before disbursement.');
+    }
 
     // Mark application as disbursed
     app.status = 'disbursed';
     this.storage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toISODateString(new Date());
     const methodLabel = method === 'e-wallet' ? 'E-Wallet' : 'Cash';
     const noteSuffix =
       method === 'e-wallet' ? ` [E-Wallet Ref: ${refNo}]` : ' [Cash]';
@@ -296,10 +303,29 @@ export class LocalStorageAdapter implements DatabaseAdapter {
   }
 
   async recordPayment(payment: Omit<LoanPayment, 'id'>): Promise<LoanPayment> {
+    if (!Number.isFinite(payment.amount) || payment.amount <= 0) {
+      throw new Error('Payment amount must be greater than 0.');
+    }
+    if ((payment.principalPortion ?? 0) < 0 || (payment.interestPortion ?? 0) < 0) {
+      throw new Error('Payment principal and interest portions cannot be negative.');
+    }
+    const portionSum = Math.round(((payment.principalPortion || 0) + (payment.interestPortion || 0)) * 100) / 100;
+    if (Math.abs(portionSum - payment.amount) > 0.01) {
+      throw new Error('Payment principal and interest portions must equal the total payment amount.');
+    }
     const loans = await this.getLoans();
     const loan = loans.find((l) => l.id === payment.loanId);
     if (!loan) {
       throw new Error(`Loan with id "${payment.loanId}" not found`);
+    }
+    if (loan.status === 'paid') {
+      throw new Error('Cannot record payment: this loan is already marked as paid.');
+    }
+
+    const existingPayments = await this.getPayments(loan.id);
+    const preSummary = calculateLoanSummary(loan, parseLocalDate(payment.paymentDate), existingPayments);
+    if ((payment.principalPortion || 0) > preSummary.remainingPrincipal + 0.01) {
+      throw new Error('Principal payment portion cannot exceed remaining loan principal.');
     }
 
     const newPayment: LoanPayment = {
@@ -316,9 +342,19 @@ export class LocalStorageAdapter implements DatabaseAdapter {
     loan.interestPaid = Math.round(((loan.interestPaid || 0) + (payment.interestPortion || 0)) * 100) / 100;
     loan.lastPaymentDate = payment.paymentDate;
 
-    // Check if fully paid off
-    const summary = calculateLoanSummary(loan, new Date(payment.paymentDate));
-    if (summary.isFullyPaid || (loan.principalPaid >= loan.principalAmount && summary.unpaidInterest <= 0)) {
+    // Check if fully paid off using pre-mutation summary so partial interest payments don't falsely clear unpaidInterest
+    const postRemainingPrincipal = Math.max(
+      0,
+      Math.round((preSummary.remainingPrincipal - (payment.principalPortion || 0)) * 100) / 100
+    );
+    const postUnpaidInterest = Math.max(
+      0,
+      Math.round((preSummary.unpaidInterest - (payment.interestPortion || 0)) * 100) / 100
+    );
+    if (
+      (postRemainingPrincipal === 0 && postUnpaidInterest === 0) ||
+      (loan.principalPaid >= loan.principalAmount && postUnpaidInterest <= 0)
+    ) {
       loan.status = 'paid';
     }
 

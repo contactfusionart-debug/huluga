@@ -64,6 +64,12 @@ create table if not exists public.loan_applications (
   reviewed_by uuid references public.profiles(id) on delete set null,
   reviewed_at timestamp with time zone,
   review_notes text,
+  co_maker_required boolean not null default false,
+  co_maker_id uuid references public.profiles(id) on delete set null,
+  co_maker_name text,
+  co_maker_status text not null default 'none' check (co_maker_status in ('none', 'pending', 'accepted', 'declined')),
+  co_maker_responded_at timestamp with time zone,
+  co_maker_notes text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -81,6 +87,8 @@ create table if not exists public.loans (
   interest_paid numeric(14,2) not null default 0.00,
   last_payment_date date,
   notes text,
+  co_maker_id uuid references public.profiles(id) on delete set null,
+  co_maker_name text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -175,10 +183,10 @@ create policy "Treasurers can insert and manage fund ledger"
   using (public.is_treasurer());
 
 -- LOAN APPLICATIONS POLICIES
-create policy "Borrowers view their own applications, treasurers view all"
+create policy "Borrowers and co-makers view their applications, treasurers view all"
   on public.loan_applications for select
   to authenticated
-  using (borrower_id = auth.uid() or public.is_treasurer());
+  using (borrower_id = auth.uid() or co_maker_id = auth.uid() or public.is_treasurer());
 
 create policy "Members can submit loan applications"
   on public.loan_applications for insert
@@ -191,16 +199,21 @@ create policy "Members can cancel own pending applications"
   using (borrower_id = auth.uid() and status = 'pending')
   with check (status = 'cancelled');
 
+create policy "Co-makers can respond to their endorsement requests"
+  on public.loan_applications for update
+  to authenticated
+  using (co_maker_id = auth.uid() and status = 'pending');
+
 create policy "Treasurers can review and update applications"
   on public.loan_applications for update
   to authenticated
   using (public.is_treasurer());
 
 -- LOANS POLICIES
-create policy "Borrowers view their own loans, treasurers view all"
+create policy "Borrowers and co-makers view their loans, treasurers view all"
   on public.loans for select
   to authenticated
-  using (borrower_id = auth.uid() or public.is_treasurer());
+  using (borrower_id = auth.uid() or co_maker_id = auth.uid() or public.is_treasurer());
 
 create policy "Treasurers can manage loans"
   on public.loans for all
@@ -255,6 +268,43 @@ as $$
 $$;
 
 grant execute on function public.member_change_password(uuid, text) to anon, authenticated;
+
+create or replace function public.cancel_loan_application(p_application_id uuid, p_notes text default 'Cancelled by applicant')
+returns setof public.loan_applications
+language sql
+security definer
+as $$
+  update public.loan_applications
+  set status = 'cancelled',
+      review_notes = coalesce(p_notes, 'Cancelled by applicant'),
+      reviewed_at = timezone('utc'::text, now())
+  where id = p_application_id
+    and status = 'pending'
+  returning *;
+$$;
+
+grant execute on function public.cancel_loan_application(uuid, text) to anon, authenticated;
+
+create or replace function public.respond_co_maker_request(
+  p_application_id uuid,
+  p_co_maker_status text,
+  p_notes text default null
+)
+returns setof public.loan_applications
+language sql
+security definer
+as $$
+  update public.loan_applications
+  set co_maker_status = p_co_maker_status,
+      co_maker_responded_at = timezone('utc'::text, now()),
+      co_maker_notes = coalesce(p_notes, co_maker_notes)
+  where id = p_application_id
+    and status = 'pending'
+    and p_co_maker_status in ('accepted', 'declined')
+  returning *;
+$$;
+
+grant execute on function public.respond_co_maker_request(uuid, text, text) to anon, authenticated;
 
 -- ==============================================================================
 -- AUTH TRIGGER: AUTO-CREATE PROFILE ON SIGNUP

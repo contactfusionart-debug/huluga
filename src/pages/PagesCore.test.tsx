@@ -285,6 +285,40 @@ describe('Core Application Pages: Login, Dashboard & Settings', () => {
         expect(screen.queryByTestId('co-maker-requests-banner')).toBeNull();
       });
     });
+
+    it('allows a member to cancel a pending loan application from Member Dashboard', async () => {
+      const adapter = new LocalStorageAdapter();
+      const apps = await adapter.getLoanApplications();
+      apps.push({
+        id: 'app-cancel-test',
+        borrowerId: 'user-2',
+        borrowerName: 'Juan Dela Cruz',
+        requestedAmount: 8000,
+        purpose: 'Store shelving upgrade',
+        monthlyInterestRate: 5.0,
+        status: 'pending',
+        appliedDate: '2026-03-05',
+      });
+      window.localStorage.setItem('huluga_applications', JSON.stringify(apps));
+
+      renderWithProviders(<DashboardPage />, {
+        initialUser: mockMemberJuan,
+      });
+
+      const cancelBtn = await screen.findByTestId('member-cancel-app-app-cancel-test');
+      fireEvent.click(cancelBtn);
+
+      const confirmBtn = await screen.findByTestId('confirm-cancel-loan-app-btn');
+      fireEvent.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('member-cancel-app-app-cancel-test')).toBeNull();
+      });
+
+      const updatedApps = await adapter.getLoanApplications();
+      const cancelled = updatedApps.find((a) => a.id === 'app-cancel-test');
+      expect(cancelled?.status).toBe('cancelled');
+    });
   });
 
   // ============================================================================

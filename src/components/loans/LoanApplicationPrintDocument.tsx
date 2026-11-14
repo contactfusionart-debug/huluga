@@ -196,7 +196,7 @@ export const LoanApplicationPrintDocument: React.FC<LoanApplicationPrintDocument
               <strong>Timely Settlement &amp; Credit Standing:</strong> Borrowers agree to settle monthly interest on or before the scheduled due date. Delinquency lowers the member&apos;s Community Credit Score and restricts future borrowing.
             </li>
             <li>
-              <strong>Share Capital Collateral &amp; Offset:</strong> The cooperative reserves the right to place a hold on and offset the borrower&apos;s (and co-maker&apos;s, where applicable) paid-up share capital to satisfy defaulted balances.
+              <strong>Year-End Share &amp; Dividend Offset:</strong> In the event of default at the end of the cycle, the cooperative reserves the right to deduct unpaid balances from the borrower&apos;s share and, where applicable, from the co-maker&apos;s year-end dividend (profit share) only; the co-maker&apos;s paid-up share capital is excluded.
             </li>
             <li>
               <strong>Disbursement &amp; Governance:</strong> All applications are subject to liquidity pool availability, credit limit verification, and final approval by the Cooperative Treasurer.

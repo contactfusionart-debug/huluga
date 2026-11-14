@@ -10,7 +10,8 @@ import type {
   LoanPayment,
   AppSettings,
 } from '../types';
-import { calculateLoanSummary } from './interestEngine';
+import { calculateLoanSummary, parseLocalDate } from './interestEngine';
+import { toISODateString } from '../utils/formatters';
 
 export interface SupabaseConfig {
   url?: string;
@@ -125,6 +126,12 @@ interface DbLoanApplication {
   reviewed_by?: string | null;
   reviewed_at?: string | null;
   review_notes?: string | null;
+  co_maker_required?: boolean | null;
+  co_maker_id?: string | null;
+  co_maker_name?: string | null;
+  co_maker_status?: import('../types').CoMakerStatus | null;
+  co_maker_responded_at?: string | null;
+  co_maker_notes?: string | null;
 }
 
 interface DbLoan {
@@ -140,6 +147,8 @@ interface DbLoan {
   interest_paid: number;
   last_payment_date?: string | null;
   notes?: string | null;
+  co_maker_id?: string | null;
+  co_maker_name?: string | null;
 }
 
 interface DbLoanPayment {
@@ -206,13 +215,23 @@ async function resolveProfileUuid(
   }
 
   if (candidate) {
-    const { data: matched } = await client
+    const cleanCandidate = candidate.trim();
+    const { data: byUsername } = await client
       .from('profiles')
       .select('id')
-      .or(`username.eq.${candidate},full_name.eq.${candidate}`)
+      .eq('username', cleanCandidate)
       .limit(1);
-    if (matched && matched[0]?.id) {
-      return matched[0].id as string;
+    if (byUsername && byUsername[0]?.id) {
+      return byUsername[0].id as string;
+    }
+
+    const { data: byFullName } = await client
+      .from('profiles')
+      .select('id')
+      .eq('full_name', cleanCandidate)
+      .limit(1);
+    if (byFullName && byFullName[0]?.id) {
+      return byFullName[0].id as string;
     }
   }
 
@@ -261,6 +280,12 @@ function mapLoanApplicationFromDb(row: DbLoanApplication): LoanApplication {
     reviewedBy: row.reviewed_by || undefined,
     reviewedAt: row.reviewed_at || undefined,
     reviewNotes: row.review_notes || undefined,
+    coMakerRequired: Boolean(row.co_maker_required),
+    coMakerId: row.co_maker_id || undefined,
+    coMakerName: row.co_maker_name || undefined,
+    coMakerStatus: row.co_maker_status || undefined,
+    coMakerRespondedAt: row.co_maker_responded_at || undefined,
+    coMakerNotes: row.co_maker_notes || undefined,
   };
 }
 
@@ -278,6 +303,8 @@ function mapLoanFromDb(row: DbLoan): Loan {
     interestPaid: Number(row.interest_paid),
     lastPaymentDate: row.last_payment_date || undefined,
     notes: row.notes || undefined,
+    coMakerId: row.co_maker_id || undefined,
+    coMakerName: row.co_maker_name || undefined,
   };
 }
 
@@ -399,6 +426,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async addFundEntry(entry: Omit<FundEntry, 'id'>): Promise<FundEntry> {
+    if (!Number.isFinite(entry.amount) || entry.amount <= 0) {
+      throw new Error('Fund entry amount must be a positive number.');
+    }
     const client = this.getClient();
     const recordedById = await resolveProfileUuid(client, entry.recordedBy, entry.memberId);
     const row = {
@@ -440,6 +470,9 @@ export class SupabaseAdapter implements DatabaseAdapter {
   async createLoanApplication(
     app: Omit<LoanApplication, 'id' | 'status' | 'appliedDate'>
   ): Promise<LoanApplication> {
+    if (!Number.isFinite(app.requestedAmount) || app.requestedAmount <= 0) {
+      throw new Error('Requested loan amount must be greater than 0.');
+    }
     const client = this.getClient();
     const todayStr = new Date().toISOString().split('T')[0];
     const row = {
@@ -450,6 +483,10 @@ export class SupabaseAdapter implements DatabaseAdapter {
       monthly_interest_rate: app.monthlyInterestRate ?? 5.0,
       status: 'pending',
       applied_date: todayStr,
+      co_maker_required: Boolean(app.coMakerRequired),
+      co_maker_id: app.coMakerId ?? null,
+      co_maker_name: app.coMakerName ?? null,
+      co_maker_status: app.coMakerStatus ?? (app.coMakerRequired ? 'pending' : 'none'),
     };
 
     const { data, error } = await client
@@ -483,9 +520,71 @@ export class SupabaseAdapter implements DatabaseAdapter {
       .update(updatePayload)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(`Supabase updateApplicationStatus failed: ${error.message}`);
+    if (!data) {
+      if (status === 'cancelled') {
+        const { data: rpcData, error: rpcError } = await client.rpc('cancel_loan_application', {
+          p_application_id: id,
+          p_notes: notes ?? 'Cancelled by applicant',
+        });
+        if (!rpcError && rpcData) {
+          const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+          if (row) return mapLoanApplicationFromDb(row as DbLoanApplication);
+        }
+        if (rpcError) {
+          throw new Error(
+            `Unable to cancel application (${rpcError.message}). Run the latest SQL schema migration in Supabase SQL Editor.`
+          );
+        }
+      }
+      throw new Error(
+        'Unable to update application status. Ensure you have permission or the application is still pending.'
+      );
+    }
+    return mapLoanApplicationFromDb(data as DbLoanApplication);
+  }
+
+  async updateCoMakerStatus(
+    id: string,
+    coMakerStatus: import('../types').CoMakerStatus,
+    notes?: string
+  ): Promise<LoanApplication> {
+    const client = this.getClient();
+    const updatePayload: Record<string, unknown> = {
+      co_maker_status: coMakerStatus,
+      co_maker_responded_at: new Date().toISOString(),
+    };
+    if (notes !== undefined) {
+      updatePayload.co_maker_notes = notes;
+    }
+
+    const { data, error } = await client
+      .from('loan_applications')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(`Supabase updateCoMakerStatus failed: ${error.message}`);
+    if (!data) {
+      const { data: rpcData, error: rpcError } = await client.rpc('respond_co_maker_request', {
+        p_application_id: id,
+        p_co_maker_status: coMakerStatus,
+        p_notes: notes ?? null,
+      });
+      if (!rpcError && rpcData) {
+        const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        if (row) return mapLoanApplicationFromDb(row as DbLoanApplication);
+      }
+      if (rpcError) {
+        throw new Error(
+          `Unable to update co-maker status (${rpcError.message}). Run the latest SQL schema migration in Supabase SQL Editor.`
+        );
+      }
+      throw new Error('Unable to update co-maker status. Application not found or permission denied.');
+    }
     return mapLoanApplicationFromDb(data as DbLoanApplication);
   }
 
@@ -530,15 +629,28 @@ export class SupabaseAdapter implements DatabaseAdapter {
     if (app.status !== 'approved' && app.status !== 'pending') {
       throw new Error(`Application cannot be disbursed in status: "${app.status}"`);
     }
+    if (app.coMakerRequired && app.coMakerStatus !== 'accepted') {
+      throw new Error('Nominated co-maker must accept the terms and conditions before disbursement.');
+    }
 
-    // 2. Mark application as disbursed
-    await client
+    // 2. Atomically mark application as disbursed to prevent duplicate disbursements
+    const { data: disbursedApp, error: disburseUpdateError } = await client
       .from('loan_applications')
       .update({ status: 'disbursed' })
-      .eq('id', applicationId);
+      .eq('id', applicationId)
+      .in('status', ['approved', 'pending'])
+      .select('id')
+      .maybeSingle();
+
+    if (disburseUpdateError || !disbursedApp) {
+      throw new Error(
+        disburseUpdateError?.message ||
+          `Application "${applicationId}" could not be disbursed (it may have already been disbursed).`
+      );
+    }
 
     // 3. Create Loan
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toISODateString(new Date());
     const methodLabel = method === 'e-wallet' ? 'E-Wallet' : 'Cash';
     const noteSuffix =
       method === 'e-wallet' ? ` [E-Wallet Ref: ${refNo}]` : ' [Cash]';
@@ -554,6 +666,8 @@ export class SupabaseAdapter implements DatabaseAdapter {
       principal_paid: 0,
       interest_paid: 0,
       notes: `${app.purpose}${noteSuffix}`,
+      co_maker_id: app.coMakerId ?? null,
+      co_maker_name: app.coMakerName ?? null,
     };
 
     const { data: loanData, error: loanError } = await client
@@ -597,6 +711,16 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async recordPayment(payment: Omit<LoanPayment, 'id'>): Promise<LoanPayment> {
+    if (!Number.isFinite(payment.amount) || payment.amount <= 0) {
+      throw new Error('Payment amount must be greater than 0.');
+    }
+    if ((payment.principalPortion ?? 0) < 0 || (payment.interestPortion ?? 0) < 0) {
+      throw new Error('Payment principal and interest portions cannot be negative.');
+    }
+    const portionSum = Math.round(((payment.principalPortion || 0) + (payment.interestPortion || 0)) * 100) / 100;
+    if (Math.abs(portionSum - payment.amount) > 0.01) {
+      throw new Error('Payment principal and interest portions must equal the total payment amount.');
+    }
     const client = this.getClient();
 
     // 1. Fetch current loan
@@ -611,6 +735,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
     }
 
     const loan = mapLoanFromDb(loanData as DbLoan);
+    if (loan.status === 'paid') {
+      throw new Error('Cannot record payment: this loan is already marked as paid.');
+    }
+    const existingPayments = await this.getPayments(loan.id);
+    const preSummary = calculateLoanSummary(loan, parseLocalDate(payment.paymentDate), existingPayments);
+    if ((payment.principalPortion || 0) > preSummary.remainingPrincipal + 0.01) {
+      throw new Error('Principal payment portion cannot exceed remaining loan principal.');
+    }
     const recordedById = await resolveProfileUuid(client, payment.recordedBy, payment.borrowerId);
 
     // 2. Insert payment record
@@ -640,12 +772,22 @@ export class SupabaseAdapter implements DatabaseAdapter {
     loan.interestPaid = Math.round(((loan.interestPaid || 0) + (payment.interestPortion || 0)) * 100) / 100;
     loan.lastPaymentDate = payment.paymentDate;
 
-    const summary = calculateLoanSummary(loan, new Date(payment.paymentDate));
-    if (summary.isFullyPaid || (loan.principalPaid >= loan.principalAmount && summary.unpaidInterest <= 0)) {
+    const postRemainingPrincipal = Math.max(
+      0,
+      Math.round((preSummary.remainingPrincipal - (payment.principalPortion || 0)) * 100) / 100
+    );
+    const postUnpaidInterest = Math.max(
+      0,
+      Math.round((preSummary.unpaidInterest - (payment.interestPortion || 0)) * 100) / 100
+    );
+    if (
+      (postRemainingPrincipal === 0 && postUnpaidInterest === 0) ||
+      (loan.principalPaid >= loan.principalAmount && postUnpaidInterest <= 0)
+    ) {
       loan.status = 'paid';
     }
 
-    await client
+    const { error: loanUpdateError } = await client
       .from('loans')
       .update({
         principal_paid: loan.principalPaid,
@@ -654,6 +796,10 @@ export class SupabaseAdapter implements DatabaseAdapter {
         status: loan.status,
       })
       .eq('id', loan.id);
+
+    if (loanUpdateError) {
+      throw new Error(`Supabase recordPayment loan update failed: ${loanUpdateError.message}`);
+    }
 
     // 4. Record fund repayment inflow
     await this.addFundEntry({

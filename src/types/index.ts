@@ -137,6 +137,7 @@ export interface MemberDividendRow {
   ownershipPercent: number;
   dividendEarned: number;
   totalYearEndReturn: number;
+  unpaidDebtBalance?: number;
 }
 
 export interface DividendSummary {

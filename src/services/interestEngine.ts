@@ -1,4 +1,4 @@
-import type { Loan, LoanSummary, PaymentAllocation } from '../types';
+import type { Loan, LoanPayment, LoanSummary, PaymentAllocation } from '../types';
 
 /**
  * Default monthly interest rate (5.0%)
@@ -9,6 +9,15 @@ interface DateParts {
   year: number;
   month: number;
   day: number;
+}
+
+/**
+ * Parses a Date or ISO date string ('YYYY-MM-DD') in local calendar time
+ * to avoid UTC-to-local off-by-one-day shifts.
+ */
+export function parseLocalDate(d: Date | string): Date {
+  const parts = parseDateParts(d);
+  return new Date(parts.year, parts.month, parts.day);
 }
 
 function parseDateParts(d: Date | string): DateParts {
@@ -80,13 +89,17 @@ export function calculateMonthsElapsed(startDateStr: string, asOfDate: Date = ne
  * - Unpaid Accrued Interest = max(0, Total Interest Incurred - Total Interest Paid)
  * - Payoff Amount = Remaining Principal + Unpaid Accrued Interest
  */
-export function calculateLoanSummary(loan: Loan, asOfDate: Date = new Date()): LoanSummary {
+export function calculateLoanSummary(
+  loan: Loan,
+  asOfDate: Date = new Date(),
+  payments?: LoanPayment[]
+): LoanSummary {
   const principalAmount = loan.principalAmount;
   const monthlyInterestRate = loan.monthlyInterestRate ?? DEFAULT_MONTHLY_INTEREST_RATE;
 
   // If loan is already marked paid, freeze calculation at payoff date (or loan start date if missing)
   const effectiveAsOf = loan.status === 'paid'
-    ? (loan.lastPaymentDate ? new Date(loan.lastPaymentDate) : new Date(loan.startDate))
+    ? parseLocalDate(loan.lastPaymentDate || loan.startDate)
     : asOfDate;
 
   const monthsElapsed = calculateMonthsElapsed(loan.startDate, effectiveAsOf);
@@ -102,12 +115,36 @@ export function calculateLoanSummary(loan: Loan, asOfDate: Date = new Date()): L
     Math.round(remainingPrincipal * (monthlyInterestRate / 100) * 100) / 100;
 
   let totalInterestIncurred: number;
-  if (principalPaid > 0 && loan.lastPaymentDate) {
+  const loanPayments = payments?.filter((p) => p.loanId === loan.id && p.principalPortion > 0);
+  if (loanPayments && loanPayments.length > 0) {
+    // Chronological period-by-period interest accrual across principal paydowns
+    const sorted = [...loanPayments].sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+    let runningPrincipal = principalAmount;
+    let prevMonths = 0;
+    let accrued = 0;
+
+    for (const p of sorted) {
+      const monthsAtPayment = Math.min(
+        monthsElapsed,
+        calculateMonthsElapsed(loan.startDate, parseLocalDate(p.paymentDate))
+      );
+      const segMonths = Math.max(0, monthsAtPayment - prevMonths);
+      const segRate = Math.round(runningPrincipal * (monthlyInterestRate / 100) * 100) / 100;
+      accrued += segMonths * segRate;
+      runningPrincipal = Math.max(0, Math.round((runningPrincipal - p.principalPortion) * 100) / 100);
+      prevMonths = monthsAtPayment;
+    }
+
+    const tailMonths = Math.max(0, monthsElapsed - prevMonths);
+    const tailRate = Math.round(runningPrincipal * (monthlyInterestRate / 100) * 100) / 100;
+    accrued += tailMonths * tailRate;
+    totalInterestIncurred = Math.round(accrued * 100) / 100;
+  } else if (principalPaid > 0 && loan.lastPaymentDate) {
     // Once principal has been paid down, prior interest was settled at lastPaymentDate;
     // subsequent months accrue at the new monthly interest based on remainingPrincipal.
     const monthsAtLastPayment = calculateMonthsElapsed(
       loan.startDate,
-      new Date(loan.lastPaymentDate)
+      parseLocalDate(loan.lastPaymentDate)
     );
     const newMonths = Math.max(0, monthsElapsed - monthsAtLastPayment);
     totalInterestIncurred =

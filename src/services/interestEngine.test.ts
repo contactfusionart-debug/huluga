@@ -4,7 +4,7 @@ import {
   calculateLoanSummary,
   allocatePayment,
 } from './interestEngine';
-import type { Loan } from '../types';
+import type { Loan, LoanPayment } from '../types';
 import { formatCurrency, formatDate, formatPercent } from '../utils/formatters';
 
 describe('interestEngine', () => {
@@ -256,6 +256,51 @@ describe('interestEngine', () => {
       expect(nextMonth.monthlyInterestAmount).toBe(700);
       expect(nextMonth.unpaidInterest).toBe(700);
       expect(nextMonth.totalPayoffAmount).toBe(7700);
+    });
+
+    it('preserves remaining unpaid interest after a partial interest-only payment following principal paydown', () => {
+      const loan: Loan = {
+        id: 'loan-8',
+        borrowerId: 'user-8',
+        borrowerName: 'Elena Cruz',
+        principalAmount: 10000,
+        monthlyInterestRate: 5.0,
+        startDate: '2026-01-01',
+        status: 'active',
+        principalPaid: 2000,
+        interestPaid: 900, // 500 (month 1) on Feb 05 + 400 partial interest on Apr 05
+        lastPaymentDate: '2026-04-05',
+      };
+
+      const payments: LoanPayment[] = [
+        {
+          id: 'p1',
+          loanId: 'loan-8',
+          borrowerId: 'user-8',
+          recordedBy: 'treasurer',
+          amount: 2500,
+          interestPortion: 500,
+          principalPortion: 2000,
+          paymentDate: '2026-02-05',
+        },
+        {
+          id: 'p2',
+          loanId: 'loan-8',
+          borrowerId: 'user-8',
+          recordedBy: 'treasurer',
+          amount: 400,
+          interestPortion: 400,
+          principalPortion: 0,
+          paymentDate: '2026-04-05',
+        },
+      ];
+
+      // On Apr 06 (3 months elapsed): 1 month at ₱500 (₱500) + 2 months at ₱400 (₱800) = ₱1,300 incurred; ₱900 paid => ₱400 unpaid
+      const summary = calculateLoanSummary(loan, new Date('2026-04-06T12:00:00'), payments);
+      expect(summary.totalInterestIncurred).toBe(1300);
+      expect(summary.unpaidInterest).toBe(400);
+      expect(summary.remainingPrincipal).toBe(8000);
+      expect(summary.totalPayoffAmount).toBe(8400);
     });
   });
 
